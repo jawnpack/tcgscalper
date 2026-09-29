@@ -22,7 +22,11 @@
 
     // Shop goal
     lease: 8000,           // cash needed to open your card shop (sim: strong players ~Day 21)
-    shopIncome: [150, 450], // daily range once open (post-game); rent stops once you own the shop
+    shopIncome: [40, 120],  // daily walk-in sales (singles, sleeves) once open; rent stops once you own the shop
+    // Your shop's shelves: boxes you stock and price yourself. No platform fee,
+    // better odds than online. Chance per box per day = atValue at/below value,
+    // minus perTenPctOver for every 10% your price is above value.
+    shelf: { fee: 0, atValue: 0.8, perTenPctOver: 0.2, min: 0.02 },
 
     // Ripping sealed boxes you own. Cash back comes from selling the singles.
     // Each row: [chance, minMultiple, maxMultiple] of what you paid.

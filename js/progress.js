@@ -51,7 +51,8 @@ function holdingsValue() {
   products.forEach(p => {
     const qty = (state.inventory[p] || 0)
       + state.deliveryQueue.filter(d => d.product === p).reduce((a, d) => a + d.quantity, 0)
-      + state.onlineListings.filter(l => l.product === p).reduce((a, l) => a + l.quantity, 0);
+      + state.onlineListings.filter(l => l.product === p).reduce((a, l) => a + l.quantity, 0)
+      + (state.shopShelf || []).filter(l => l.product === p).reduce((a, l) => a + l.quantity, 0);
     v += qty * market.valueNow(p) * 0.9;
   });
   return v;
@@ -103,7 +104,7 @@ function economyTick() {
     const [lo, hi] = RULES.shopIncome;
     const income = Math.round(lo + Math.random() * (hi - lo));
     state.money += income;
-    msgs.push(`🏪 Your shop made ${usd(income)} today.`);
+    msgs.push(`🏪 Walk-ins spent ${usd(income)} on singles and supplies.`);
   }
   if (state.debt > RULES.evictAt) state.evicted = true;
   return msgs;
@@ -138,6 +139,7 @@ function openShop() {
   state.money -= RULES.lease;
   state.shopOpen = true;
   state.shopDay = state.day;
+  state.location = "Your Shop";
   render();
   showMoment("shop");
 }
@@ -265,13 +267,13 @@ async function shareRun(kind) {
 function momentHtml(kind) {
   const title = kind === "shop"
     ? `<p style="font-size:1.2em">🏪 You opened your own card shop on <strong>DAY ${state.shopDay}</strong>.</p>
-       <p>Rent is over. Your shop earns money every day now.</p>
-       <p><strong>POST-GAME:</strong> hunt for <strong>${RULES.grailName}</strong>. Rip boxes from your inventory, grab mystery boxes, and pray for a god pack. Keep flipping to fund it. The hunt ends when you pull it or go broke.</p>`
+       <p>Rent is over. Walk-ins buy every day, and you can stock your own shelves at your own prices.</p>
+       <p><strong>POST-GAME:</strong> hunt for <strong>${RULES.grailName}</strong>. RIP boxes (tap MORE up top), open mystery boxes, and pray for a god pack. Keep flipping to fund it. The hunt ends when you pull it or go broke.</p>`
     : `<p style="font-size:1.2em">🏆 You pulled <strong>${RULES.grailName}</strong> on box <strong>#${state.grailBox}</strong>!</p>
        <p>${state.shopOpen ? "That's the whole game. Legend." : "Before you even opened a shop. Absolute lotto. Keep going for the shop!"}</p>`;
   return `${title}
     <pre class="share-preview">${escapeHtml(shareText(kind))}</pre>
-    <button type="button" class="share-btn" onclick="shareRun('${kind}')">SHARE</button>`;
+    <button type="button" class="btn primary" onclick="shareRun('${kind}')">SHARE</button>`;
 }
 function showMoment(kind) {
   showModalNotification(momentHtml(kind), kind === "shop" ? "SHOP OPENED" : "GRAIL PULLED", () => {
@@ -311,50 +313,4 @@ function endRun(reason) {
   document.getElementById("final-sold").textContent = gameStats.totalSold;
   document.getElementById("final-share").textContent = shareText("end");
   document.getElementById("leaderboard-modal").style.display = "flex";
-}
-
-// ---------------------------------------------------------------------------
-// UI
-// ---------------------------------------------------------------------------
-function renderProgress() {
-  const $ = id => document.getElementById(id);
-  if (!$("debt")) return;
-  $("debt").textContent = usd(state.debt);
-  $("pay-debt").disabled = state.debt <= 0 || state.money <= 0;
-  $("borrow").disabled = state.runOver || state.debt >= RULES.borrowLimit - 50;
-
-  if (state.shopOpen) {
-    $("rent-line").textContent = `🏪 Your shop opened Day ${state.shopDay}. No more rent.`;
-    $("shop-line").innerHTML = state.grailBox
-      ? `🏆 You own ${RULES.grailName}.`
-      : `🏆 Grail hunt: ${state.boxesRipped} boxes ripped, ${state.godPacks} god pack${state.godPacks === 1 ? "" : "s"}.`;
-  } else {
-    const r = TCGRules.nextRent(state.day);
-    const dueToday = TCGRules.rentDue(state.day);
-    $("rent-line").textContent = dueToday
-      ? `🏠 Rent of ${usd(dueToday)} was due today.`
-      : `🏠 Rent: ${usd(r.amount)} due Day ${r.day}.`;
-    const ready = state.money >= RULES.lease && state.debt === 0;
-    const left = RULES.mainDays - state.day;
-    $("shop-line").innerHTML = `🎯 Goal: ${usd(RULES.lease)} to open your shop (${left > 0 ? left + " days left" : "last day!"}) `
-      + `<button type="button" id="open-shop" onclick="openShop()" ${ready ? "" : "disabled"}>OPEN SHOP</button>`;
-  }
-  const banner = $("postgame-banner");
-  if (banner) banner.style.display = state.shopOpen && !state.grailBox ? "block" : "none";
-}
-
-// Inventory row extras: a RIP button per product you hold.
-function ripButtonHtml(product) {
-  if (!(state.inventory[product] > 0) || state.runOver) return "";
-  return ` <button type="button" class="rip-btn" onclick="ripBox('${product.replace(/'/g, "\\'")}')">RIP</button>`;
-}
-
-// Market table extra row when this store has a mystery box today.
-function mysteryRow() {
-  const price = market.mysteryBox(state.location);
-  if (!price) return null;
-  const tr = document.createElement("tr");
-  tr.className = "mystery-row";
-  tr.innerHTML = `<td>📦 Mystery Box</td><td>$${price} (1 left)</td><td><button type="button" onclick="buyMystery()">Buy & open</button></td><td></td><td></td>`;
-  return tr;
 }

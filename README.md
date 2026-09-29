@@ -12,5 +12,6 @@ A text-based, Drug Wars-style trading card reseller game. $1,000, 30 days: read 
 - `js/rules.js` – rent, debt, shop lease, ripping, Grail odds (all tuning numbers)
 - `js/progress.js` – shop goal, ripping, mystery boxes, Grail post-game, share cards
 - `js/intro.js` – intro script and tutorial
-- `js/game.js` – UI and day loop
+- `js/game.js` – UI (status bar, places, counter, sheets) and the day loop
+- `css/gamestyle.css` – black & white theme; per-location palettes ready (add `class="color"` to `<body>`)
 - `tools/simulate.js`, `tools/grail-odds.js` – balance simulators (`node tools/simulate.js`)

@@ -1,222 +1,215 @@
-/* style.css - Mobile Optimized */
+/* gamestyle.css — phone-first, one screen, black & white.
+ *
+ * THEME HOOKS
+ * Everything is drawn from the CSS variables below. <body data-place="…">
+ * changes as the player travels (lgs, costmart, ecom, marketplace,
+ * convention, online, shop). Right now every place is black & white.
+ * To turn on per-location colors later, add class="color" to <body>
+ * (or flip it in game.js: document.body.classList.add("color")) and the
+ * palettes at the bottom of this file take over. Edit those palettes freely.
+ */
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-/* Base styles with mobile-first approach */
-* {
-  box-sizing: border-box;
+:root {
+  --bg: #fff;
+  --ink: #000;
+  --muted: #666;
+  --line: #000;
+  --panel: #fff;
+  --accent: #000;       /* buttons, selected place, headers */
+  --accent-ink: #fff;   /* text on accent */
+  --soft: #eee;         /* quiet fills */
+  --font: 'Press Start 2P', ui-monospace, monospace;
+  --topbar-h: 64px;
+  --actionbar-h: 60px;
 }
 
-html {
-  font-size: 16px; /* Base font size for easier rem calculations */
-}
-
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
-  background-color: #f4f4f4;
-  font-family: 'Press Start 2P', monospace;
-  color: #222;
-  padding: 10px;
-  line-height: 1.3;
   margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 10px;
+  line-height: 1.5;
+  padding-top: calc(var(--topbar-h) + env(safe-area-inset-top));
+  padding-bottom: calc(var(--actionbar-h) + env(safe-area-inset-bottom) + 8px);
+}
+button { font-family: inherit; color: inherit; }
+button:disabled { opacity: .35; cursor: default; }
+h2, h3 { margin: 0; font-weight: normal; }
+
+/* ---------- Status bar ---------- */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  background: var(--accent); color: var(--accent-ink);
+  padding: calc(6px + env(safe-area-inset-top)) 10px 6px;
+  border-bottom: 3px solid var(--line);
+}
+.tb-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; max-width: 720px; margin: 0 auto; }
+#tb-cash { font-size: 13px; }
+#tb-clock { padding: 2px 5px; border: 2px solid var(--accent-ink); }
+#tb-clock.low { background: var(--accent-ink); color: var(--accent); }
+#tb-more {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  width: 100%; max-width: 720px; margin: 6px auto 0; padding: 5px 6px;
+  background: transparent; border: 2px solid var(--accent-ink); color: var(--accent-ink);
+  font-size: 8px; text-align: left; cursor: pointer;
+}
+#tb-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-more-label { flex: none; }
+
+/* ---------- Board: places | counter ---------- */
+#board {
+  display: grid; grid-template-columns: 104px 1fr; gap: 8px;
+  max-width: 720px; margin: 8px auto 0; padding: 0 8px;
+}
+#places { display: flex; flex-direction: column; gap: 6px; }
+.places-group h3 { font-size: 8px; color: var(--muted); margin: 2px 0 4px; letter-spacing: 1px; }
+.places-group { display: flex; flex-direction: column; gap: 4px; }
+.place {
+  width: 100%; min-height: 38px; padding: 5px 4px;
+  font-size: 7.5px; line-height: 1.4; text-align: left;
+  background: var(--panel); border: 2px solid var(--line); cursor: pointer;
+}
+.place small { display: block; font-size: 6.5px; color: var(--muted); margin-top: 2px; }
+.place.here { background: var(--accent); color: var(--accent-ink); }
+.place.here small { color: var(--accent-ink); opacity: .8; }
+.place.locked { border-style: dashed; }
+
+#counter { border: 3px solid var(--line); background: var(--panel); min-width: 0; }
+#counter-head { padding: 8px; border-bottom: 3px solid var(--line); background: var(--accent); color: var(--accent-ink); }
+#here { font-size: 10px; }
+#here-note { margin: 4px 0 0; font-size: 7px; opacity: .85; }
+#counter-body { padding: 4px 6px 8px; }
+
+.mk { width: 100%; border-collapse: collapse; }
+.mk td { padding: 7px 2px; border-bottom: 1px dashed var(--line); vertical-align: middle; font-size: 8px; }
+.mk tr:last-child td { border-bottom: none; }
+.mk .nm { width: 44%; line-height: 1.5; }
+.mk .nm small, .mk .pr small { display: block; font-size: 6.5px; color: var(--muted); margin-top: 3px; }
+.mk .pr { text-align: right; white-space: nowrap; padding-right: 6px; }
+.mk .act { text-align: right; white-space: nowrap; }
+.mk .mystery td { background: var(--soft); }
+
+.btn {
+  font-size: 8px; padding: 7px 7px; min-height: 30px;
+  background: var(--panel); border: 2px solid var(--line); cursor: pointer;
+}
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.tiny { font-size: 7px; padding: 5px 5px; min-height: 26px; }
+.btn.wide { width: 100%; margin-top: 8px; }
+.btn + .btn { margin-left: 3px; }
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.btn-row .btn + .btn { margin-left: 0; }
+.empty { color: var(--muted); font-size: 8px; line-height: 1.8; padding: 10px 2px; }
+
+/* ---------- Feed ---------- */
+#feed {
+  max-width: 720px; margin: 8px auto 0; padding: 6px 8px; border: 3px solid var(--line);
+  width: calc(100% - 16px);
+}
+#feed h3 { font-size: 8px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+#rumor { font-size: 8px; line-height: 1.8; white-space: pre-line; max-height: 7.4em; overflow-y: auto; }
+
+/* ---------- Action bar ---------- */
+#actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: var(--bg); border-top: 3px solid var(--line);
+}
+#next-day {
+  display: block; width: 100%; max-width: 720px; margin: 0 auto; min-height: 42px;
+  font-size: 12px; background: var(--accent); color: var(--accent-ink); border: 3px solid var(--line); cursor: pointer;
 }
 
-h1 {
-  text-align: center;
-  font-size: 1.2rem; /* Smaller for mobile */
-  color: #e06666; /* pastel red */
-  margin-bottom: 0.8rem;
+/* ---------- Toasts ---------- */
+#toasts {
+  position: fixed; left: 10px; right: 10px; z-index: 60;
+  bottom: calc(var(--actionbar-h) + env(safe-area-inset-bottom) + 8px);
+  display: flex; flex-direction: column; gap: 4px; align-items: center; pointer-events: none;
+}
+.toast {
+  width: 100%; max-width: 520px; padding: 7px 9px; font-size: 8px; line-height: 1.6;
+  background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent-ink);
+  box-shadow: 0 0 0 2px var(--line);
+  animation: toast-in .2s steps(3);
+}
+.toast.error { background: var(--bg); color: var(--ink); border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink), 4px 4px 0 var(--ink); }
+@keyframes toast-in { from { transform: translateY(8px); opacity: 0; } }
+
+/* ---------- Overlays (sheet, notices, end screen) ---------- */
+.overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; }
+.overlay[hidden] { display: none; }
+.sheet-panel {
+  width: 100%; max-width: 560px; max-height: 88vh; overflow: auto;
+  background: var(--panel); border: 3px solid var(--line); border-bottom: none;
+  padding: 0 12px calc(16px + env(safe-area-inset-bottom));
+}
+.sheet-head {
+  position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center;
+  background: var(--panel); padding: 12px 0 8px; border-bottom: 3px solid var(--line); margin-bottom: 8px;
+}
+#sheet-title { font-size: 11px; }
+.sheet-close { font-size: 14px; background: none; border: 2px solid var(--line); width: 34px; height: 34px; cursor: pointer; }
+.sheet-section { border-bottom: 1px dashed var(--line); padding: 10px 0; font-size: 8px; line-height: 1.8; }
+.sheet-section:last-child { border-bottom: none; }
+.sheet-section h3 { font-size: 8px; color: var(--muted); margin-bottom: 6px; letter-spacing: 1px; }
+.sheet-section p { margin: 4px 0; }
+.kv { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; }
+
+.inv { width: 100%; border-collapse: collapse; font-size: 7.5px; }
+.inv th { text-align: left; font-weight: normal; color: var(--muted); font-size: 6.5px; padding: 4px 2px; border-bottom: 2px solid var(--line); }
+.inv td { padding: 6px 2px; border-bottom: 1px dashed var(--line); vertical-align: middle; }
+.inv td.num, .inv th.num { text-align: right; }
+.inv input { width: 58px; font-family: inherit; font-size: 8px; padding: 5px 3px; border: 2px solid var(--line); background: var(--bg); color: var(--ink); }
+.inv input.qty { width: 38px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 7px; color: var(--muted); }
+.form-grid label.full { grid-column: 1 / -1; }
+.form-grid select, .form-grid input {
+  font-family: inherit; font-size: 9px; padding: 7px 5px; border: 2px solid var(--line);
+  background: var(--bg); color: var(--ink); width: 100%;
+}
+.hint { font-size: 7px; color: var(--muted); line-height: 1.8; margin: 6px 0 0; }
+
+/* Notice modal (rent, rips, moments) */
+#modal-container { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; padding: 16px; }
+.notice-modal, .modal-content {
+  width: 100%; max-width: 520px; max-height: 88vh; overflow: auto;
+  background: var(--panel); color: var(--ink); border: 3px solid var(--line); box-shadow: 6px 6px 0 var(--line);
+  padding: 14px; font-size: 9px; line-height: 1.8;
+}
+.notice-modal h3, .modal-content h2 { font-size: 11px; margin-bottom: 8px; border-bottom: 3px solid var(--line); padding-bottom: 8px; }
+.notice-modal .ok { display: block; margin: 12px 0 0 auto; }
+#leaderboard-modal { align-items: center; padding: 16px; z-index: 95; }
+.share-preview {
+  background: var(--ink); color: var(--bg); padding: 10px; font-family: ui-monospace, monospace;
+  font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; margin: 10px 0;
 }
 
-.container {
-  width: 100%;
-  max-width: 900px;
-  margin: auto;
-  padding: 10px;
-  border: 4px solid #666;
-  background-color: #fffbea;
-  box-shadow: 0 0 0 2px #222;
+/* ---------- Wider screens ---------- */
+@media (min-width: 560px) {
+  body { font-size: 11px; }
+  #board { grid-template-columns: 170px 1fr; }
+  .place { font-size: 9px; min-height: 42px; }
+  .place small { font-size: 7.5px; }
+  .mk td { font-size: 10px; }
+  .btn { font-size: 9px; }
+  #rumor { font-size: 9px; }
+  #tb-more { font-size: 9px; }
 }
 
-.stats-inventory,
-.market-locations,
-.locations,
-.control-panel {
-  border: 3px solid #222;
-  padding: 10px;
-  margin-bottom: 15px;
-  background-color: #f0faff;
-  box-shadow: inset 0 0 0 1px #aaa;
-  border-radius: 4px; /* Slight rounding for mobile */
-  overflow-x: auto; /* For tables that might overflow */
-}
-
-.stats-inventory {
-  background-color: #fff0f5; /* pastel red */
-}
-
-.market-location {
-  background-color: #e0fff4; /* pastel green */
-}
-
-.locations {
-  background-color: #fffdd0; /* pastel yellow */
-}
-
-.online-store {
-  background-color: #ddeeff; /* pastel blue */
-  text-align: center;
-}
-
-.next-day {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px;
-}
-
-.next-day button {
-  font-size: 0.9rem;
-  padding: 12px 24px;
-  min-width: 200px;
-}
-
-button {
-  background-color: #ffcccb;
-  border: 2px solid #222;
-  color: #000;
-  padding: 10px 16px; /* Larger touch targets for mobile */
-  margin: 5px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.7rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  transition: all 0.1s ease-in-out;
-  border-radius: 4px; /* Slight rounding for mobile */
-  width: auto; /* Allow buttons to be appropriate width */
-}
-
-button:hover, button:active {
-  background-color: #f0e68c;
-  color: #222;
-  transform: scale(1.03);
-}
-
-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.65rem;
-  min-width: 280px; /* Ensure tables don't get too compressed */
-}
-
-th, td {
-  padding: 4px;
-  border: 1px solid #444;
-  text-align: center;
-}
-
-ul {
-  list-style-type: square;
-  padding-left: 15px;
-  margin: 0.5rem 0;
-}
-
-/* Media Queries for responsive design */
-/* Small phones */
-@media (max-width: 320px) {
-  body {
-    padding: 5px;
-  }
-  
-  h1 {
-    font-size: 1rem;
-  }
-  
-  button {
-    padding: 8px 12px;
-    font-size: 0.6rem;
-    margin: 3px;
-    width: 100%; /* Stack buttons on tiny screens */
-  }
-  
-  .container {
-    padding: 5px;
-    border-width: 3px;
-  }
-  
-  .next-day button {
-    min-width: 80%;
-    font-size: 0.7rem;
-  }
-}
-
-/* Medium-sized devices (tablets) */
-@media (min-width: 768px) {
-  body {
-    padding: 15px;
-  }
-  
-  h1 {
-    font-size: 1.5rem;
-  }
-  
-  .container {
-    padding: 15px;
-    border-width: 5px;
-  }
-  
-  button {
-    font-size: 0.8rem;
-  }
-  
-  table {
-    font-size: 0.7rem;
-  }
-}
-
-/* Larger screens */
-@media (min-width: 992px) {
-  h1 {
-    font-size: 1.8rem;
-  }
-  
-  .container {
-    padding: 15px;
-    border-width: 6px;
-  }
-  
-  button {
-    font-size: 0.9rem;
-  }
-  
-  table {
-    font-size: 0.8rem;
-  }
-}
-
-/* Optional: Touch-specific optimizations */
-@media (hover: none) {
-  button {
-    padding: 12px 18px; /* Even larger touch targets */
-  }
-  
-  /* Add some spacing between interactive elements */
-  button + button {
-    margin-top: 8px;
-  }
-}
-
-/* ---- Rent, debt, shop goal, Grail post-game ---- */
-#money-panel { border-top: 2px dashed #aaa; margin-top: 8px; padding-top: 6px; font-size: 0.75rem; }
-#money-panel p { margin: 6px 0; }
-#money-panel button, .rip-btn { font-family: inherit; font-size: 0.6rem; padding: 4px 6px; margin-left: 4px; cursor: pointer; }
-#money-panel button:disabled { opacity: 0.4; cursor: default; }
-#open-shop:not(:disabled) { background: #e06666; color: #fff; border: 2px solid #222; }
-.rip-btn { background: #222; color: #ffe27a; border: 2px solid #222; }
-.mystery-row td { background: #fff3c4; }
-#postgame-banner { max-width: 900px; margin: 0 auto 10px; padding: 10px; background: #222; color: #ffe27a; font-size: 0.7rem; text-align: center; border: 3px solid #e06666; }
-.share-preview { background: #111; color: #9fe6ff; padding: 10px; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; text-align: left; border: 2px solid #444; }
-.share-btn { font-family: inherit; font-size: 0.8rem; padding: 10px 18px; background: #e06666; color: #fff; border: 3px solid #222; cursor: pointer; margin: 6px 0 12px; }
+/* ======================================================================
+ * PER-LOCATION COLOR PALETTES — prepared, OFF by default.
+ * Turn on with <body class="color">. Change values freely.
+ * ====================================================================== */
+body.color[data-place="lgs"]         { --accent: #2e6b3f; --accent-ink: #fff; --soft: #e6f2e9; }
+body.color[data-place="costmart"]    { --accent: #c0392b; --accent-ink: #fff; --soft: #fbe7e4; }
+body.color[data-place="ecom"]        { --accent: #1f5fbf; --accent-ink: #fff; --soft: #e5eefb; }
+body.color[data-place="marketplace"] { --accent: #b8860b; --accent-ink: #000; --soft: #fbf3dc; }
+body.color[data-place="convention"]  { --accent: #6a3fb5; --accent-ink: #fff; --soft: #efe8fa; }
+body.color[data-place="online"]      { --accent: #0e8a8a; --accent-ink: #fff; --soft: #e0f4f4; }
+body.color[data-place="shop"]        { --accent: #e0662a; --accent-ink: #000; --soft: #fdeee4; }

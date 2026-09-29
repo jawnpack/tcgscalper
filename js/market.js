@@ -356,13 +356,14 @@
 
       // Online listing: returns how many of the listed boxes sold today, and
       // the payout per box after fees.
-      listingSales(p, askPrice, qty) {
+      // cfg lets other venues (your own shop shelves) use different odds/fees.
+      listingSales(p, askPrice, qty, cfg = LISTING) {
         const ratio = askPrice / series[p].value[day];
-        const chance = Math.max(LISTING.min,
-          Math.min(0.95, LISTING.atValue - Math.max(0, ratio - 1) * 10 * LISTING.perTenPctOver));
+        const chance = Math.max(cfg.min,
+          Math.min(0.95, cfg.atValue - Math.max(0, ratio - 1) * 10 * cfg.perTenPctOver));
         let n = 0;
         for (let i = 0; i < qty; i++) if (listingRng.next() < chance) n++;
-        return { sold: n, payoutEach: askPrice * (1 - LISTING.fee), chance };
+        return { sold: n, payoutEach: askPrice * (1 - cfg.fee), chance };
       },
 
       headlines() { return headlinesFor(day, plan); },
