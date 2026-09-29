@@ -49,8 +49,6 @@ h2, h3 { margin: 0; font-weight: normal; }
 }
 .tb-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; max-width: 720px; margin: 0 auto; }
 #tb-cash { font-size: 13px; }
-#tb-clock { padding: 2px 5px; border: 2px solid var(--accent-ink); }
-#tb-clock.low { background: var(--accent-ink); color: var(--accent); }
 #tb-more {
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
   width: 100%; max-width: 720px; margin: 6px auto 0; padding: 5px 6px;
@@ -140,12 +138,12 @@ h2, h3 { margin: 0; font-weight: normal; }
 @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } }
 
 /* ---------- Overlays (sheet, notices, end screen) ---------- */
-.overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; }
+.overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
 .overlay[hidden] { display: none; }
 .sheet-panel {
-  width: 100%; max-width: 560px; max-height: 88vh; overflow: auto;
-  background: var(--panel); border: 3px solid var(--line); border-bottom: none;
-  padding: 0 12px calc(16px + env(safe-area-inset-bottom));
+  width: 100%; max-width: 560px; max-height: 100%; overflow: auto; overscroll-behavior: contain;
+  background: var(--panel); border: 3px solid var(--line); box-shadow: 6px 6px 0 var(--line);
+  padding: 0 12px 14px;
 }
 .sheet-head {
   position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center;

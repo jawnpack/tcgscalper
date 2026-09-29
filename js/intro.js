@@ -284,7 +284,7 @@
     { target: null,
       t: "Listen up, rookie. You've got $1,000 and 30 days to raise $8,000 and open your OWN card shop. Do it fast. The day you open is your score." },
     { target: "#topbar",
-      t: "Day, cash, and the clock. Every 2 minutes, shelves somewhere sell out. Move fast." },
+      t: "The day and your cash. Every day you can visit as many places as you like. Nothing moves until you hit NEXT DAY." },
     { target: "#tb-more",
       t: "Tap MORE for everything else: your boxes, debt, rent and the shop goal. RIP a box there for a shot at THE GRAIL." },
     { target: () => document.querySelectorAll(".places-group")[0],

@@ -295,7 +295,6 @@ function checkRunEnd() {
 function endRun(reason) {
   if (state.runOver) return;
   state.runOver = true;
-  if (state.timer) clearInterval(state.timer);
   const why = {
     evicted: `The loan shark came to collect. You owed ${usd(state.debt)}. EVICTED.`,
     time: `Day ${RULES.mainDays} came and went without a shop.`,

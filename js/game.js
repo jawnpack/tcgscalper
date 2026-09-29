@@ -35,8 +35,6 @@ let state = {
   deliveryQueue: [],
   onlineListings: [],   // { product, price, quantity, days }
   shopShelf: [],        // same shape, sold from your own shop
-  timer: null,
-  timeRemaining: 120
 };
 products.forEach(p => (state.inventory[p] = 0));
 let gameStats = { totalBought: 0, totalSold: 0 };
@@ -83,44 +81,6 @@ function showModalNotification(message, title = "", onClose) {
     if (typeof onClose === "function") onClose();
     if (modalQueue.length) showModalNotification(...modalQueue.shift());
   };
-}
-
-// ---------------------------------------------------------------------------
-// The 2-minute sellout clock
-// ---------------------------------------------------------------------------
-function startProductTimer() {
-  clearInterval(state.timer);
-  state.timeRemaining = 120;
-  renderClock();
-  state.timer = setInterval(() => {
-    state.timeRemaining--;
-    renderClock();
-    if (state.timeRemaining <= 0) {
-      clearInterval(state.timer);
-      randomlySellOutProducts();
-      startProductTimer();
-    }
-  }, 1000);
-}
-function renderClock() {
-  const el = $("tb-clock");
-  if (!el) return;
-  const m = Math.floor(state.timeRemaining / 60), s = state.timeRemaining % 60;
-  el.textContent = `${m}:${s < 10 ? "0" : ""}${s}`;
-  el.classList.toggle("low", state.timeRemaining <= 30);
-}
-function randomlySellOutProducts() {
-  const gone = [];
-  buyLocations.forEach(loc => {
-    const avail = products.filter(p => market.stock(loc, p) > 0);
-    const n = Math.min(avail.length, Math.floor(Math.random() * 2) + 1);
-    [...avail].sort(() => Math.random() - 0.5).slice(0, n).forEach(p => {
-      market.sellOut(loc, p);
-      gone.push(`${p} at ${placeOf(loc).short}`);
-    });
-  });
-  if (gone.length) showNotification(`⚠️ Sold out: ${gone.join(", ")}`, "error");
-  render();
 }
 
 // ---------------------------------------------------------------------------
@@ -267,7 +227,6 @@ function nextDay() {
 
   state.day++;
   market.nextDay();
-  startProductTimer();
 
   const arrived = [];
   state.deliveryQueue = state.deliveryQueue.filter(d => {
@@ -545,7 +504,7 @@ function initializeGame() {
   showModalNotification(
     `<p><strong>${run.label}</strong></p>
      <p>$1,000. ${TCGRules.RULES.mainDays} days. Raise ${money(TCGRules.RULES.lease)} and open your own card shop.</p>
-     <p>Rent is due every 7 days. Watch the Feed.</p>`, "TCG SCALPER", startProductTimer);
+     <p>Rent is due every 7 days. Watch the Feed.</p>`, "TCG SCALPER");
 }
 
 window.onload = async () => {
