@@ -1,29 +1,30 @@
 <!DOCTYPE html>
 <html>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-P03T25QFLT"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-P03T25QFLT');
-</script>
 <head>
+<!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-P03T25QFLT"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  
+    gtag('config', 'G-P03T25QFLT');
+  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TCG Scalping Wars</title>
+  <title>TCG Scalper</title>
+  <meta name="description" content="$1,000. 30 days. Flip sealed trading card product, read the rumors, and open your own card shop.">
+  <meta property="og:title" content="TCG Scalper">
+  <meta property="og:description" content="$1,000. 30 days. Read the rumors, flip the hype, open your own card shop. How fast can you do it?">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
   <link rel="stylesheet" href="css/gamestyle.css">
   <link rel="stylesheet" href="css/intro.css">
-  <!-- Firebase App (the core Firebase SDK) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <!-- Firebase Database -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
   <div id="postgame-banner" style="display:none">🏆 POST-GAME: Hunt THE GRAIL. RIP boxes from your inventory or grab mystery boxes.</div>
   <div class="container">
-    <h1>TCG Scalper Emulator</h1>
+    <h1>TCG Scalper</h1>
     <h2>Day: <span id="day">1</span></h2>
     <div class="stats-inventory">
       <p>Current Location: <span id="location">Local Game Store</span></p>
@@ -121,30 +122,7 @@
       </div>
       <pre id="final-share" class="share-preview"></pre>
       <button type="button" class="share-btn" onclick="shareRun('end')">SHARE</button>
-      <div id="leaderboard-form">
-        <p>Enter your initials (up to 3 characters):</p>
-        <input type="text" id="player-initials" maxlength="3" placeholder="ABC">
-        <button id="submit-score" onclick="submitScore()">Submit Score</button>
-      </div>
-      <div id="leaderboard-display" style="display: none;">
-        <h3>Top Players</h3>
-        <table id="leaderboard-table">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Player</th>
-              <th>Net worth</th>
-              <th>Shop</th>
-              <th>Grail</th>
-              <th>Days</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboard-body">
-            <!-- Populated dynamically -->
-          </tbody>
-        </table>
-        <button id="play-again" onclick="playAgain()">Play Again (Free Play)</button>
-      </div>
+      <button id="play-again" onclick="playAgain()">Play Again (Free Play)</button>
     </div>
   </div>
 

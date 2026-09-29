@@ -1,20 +1,6 @@
 // game.js
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBGUqKLyes3vGlx0KXWZXC59LkpKIakcZw",
-  authDomain: "tcg-scalper-leaderboard.firebaseapp.com",
-  projectId: "tcg-scalper-leaderboard",
-  storageBucket: "tcg-scalper-leaderboard.firebasestorage.app",
-  messagingSenderId: "85796303216",
-  appId: "1:85796303216:web:d8cf90e3fb9c16a54f1fb5",
-  measurementId: "G-P03T25QFLT"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+// Leaderboard: removed for the playtest. A new leaderboard system will come later.
 
 // Market + rumors live in js/market.js. ?seed=abc123 replays an exact market.
 function seedFromUrl() {
@@ -824,84 +810,6 @@ function nextDay() {
   
 }
 
-// Submit the score to Firebase
-function submitScore() {
-  const initials = document.getElementById("player-initials").value.trim();
-  
-  if (!initials) {
-    showNotification("Please enter your initials!", "error");
-    return;
-  }
-  
-  const scoreData = {
-    initials: initials.replace(/[^A-Za-z0-9]/g, "").slice(0, 3).toUpperCase(),
-    money: Math.round(netWorth()),
-    days: state.day,
-    shopDay: state.shopDay || null,
-    grailBox: state.grailBox || null,
-    board: state.runLabel,
-    bought: gameStats.totalBought,
-    sold: gameStats.totalSold,
-    timestamp: firebase.database.ServerValue.TIMESTAMP
-  };
-  
-  // Push to Firebase
-  database.ref('leaderboard').push(scoreData)
-    .then(() => {
-      showNotification("Score submitted successfully!", "success");
-      document.getElementById("leaderboard-form").style.display = "none";
-      displayLeaderboard();
-    })
-    .catch(error => {
-      console.error("Error submitting score:", error);
-      showNotification("Error submitting score. Please try again.", "error");
-    });
-}
-
-// Display the leaderboard from Firebase
-function displayLeaderboard() {
-  const leaderboardBody = document.getElementById("leaderboard-body");
-  leaderboardBody.innerHTML = '<tr><td colspan="6">Loading leaderboard...</td></tr>';
-  
-  document.getElementById("leaderboard-display").style.display = "block";
-  
-  // Fetch top 10 scores sorted by money
-  database.ref('leaderboard')
-    .orderByChild('money')
-    .limitToLast(10)
-    .once('value')
-    .then(snapshot => {
-      const scores = [];
-      snapshot.forEach(childSnapshot => {
-        scores.push(childSnapshot.val());
-      });
-      
-      // Sort by money (highest first)
-      scores.sort((a, b) => b.money - a.money);
-      
-      // Update the leaderboard table
-      leaderboardBody.innerHTML = '';
-      scores.forEach((score, index) => {
-        // textContent only: never render leaderboard data as HTML
-        const row = document.createElement('tr');
-        [index + 1, String(score.initials || "").slice(0, 3),
-         "$" + Math.round(Number(score.money) || 0).toLocaleString(),
-         score.shopDay ? "Day " + Number(score.shopDay) : "—",
-         score.grailBox ? "#" + Number(score.grailBox) : "—",
-         Number(score.days) || 0].forEach(v => {
-          const td = document.createElement('td');
-          td.textContent = v;
-          row.appendChild(td);
-        });
-        leaderboardBody.appendChild(row);
-      });
-    })
-    .catch(error => {
-      console.error("Error fetching leaderboard:", error);
-      leaderboardBody.innerHTML = '<tr><td colspan="6">Error loading leaderboard</td></tr>';
-    });
-}
-
 // Restart the game
 function playAgain() {
   document.getElementById("leaderboard-modal").style.display = "none";
@@ -983,6 +891,7 @@ function initializeGame() {
 }
 
 window.onload = async () => {
+  resetProgress(); // so the board the tutorial points at shows real numbers
   // First visit (or ?intro=1): arcade cut scene -> title -> optional tutorial.
   // The 2-minute sellout timer only starts once the player is actually in the game.
   if (window.Intro) {

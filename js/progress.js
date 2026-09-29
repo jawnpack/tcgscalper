@@ -210,7 +210,7 @@ function trendStrip(maxDays) {
   return out;
 }
 function challengeLink() {
-  return `${location.origin}${location.pathname}?seed=${encodeURIComponent(state.seed)}`;
+  return `${location.origin}${location.pathname.replace(/index\.html$/, "")}?seed=${encodeURIComponent(state.seed)}`;
 }
 
 function shareText(kind) {
@@ -304,16 +304,13 @@ function endRun(reason) {
   document.getElementById("final-rank").textContent =
     TCGRules.rankFor({ evicted: state.evicted, shopDay: state.shopDay, grailBox: state.grailBox, netWorth: netWorth() });
   document.getElementById("final-money").textContent = Math.round(netWorth()).toLocaleString();
-  document.getElementById("final-days").textContent = state.day;
+  document.getElementById("final-days").textContent = Math.max(1, state.netWorthHistory.length);
   document.getElementById("final-shop").textContent = state.shopDay ? `Day ${state.shopDay}` : "—";
   document.getElementById("final-grail").textContent = state.grailBox ? `Box #${state.grailBox}` : "—";
   document.getElementById("final-bought").textContent = gameStats.totalBought;
   document.getElementById("final-sold").textContent = gameStats.totalSold;
   document.getElementById("final-share").textContent = shareText("end");
-  document.getElementById("leaderboard-form").style.display = "";
-  document.getElementById("leaderboard-display").style.display = "none";
   document.getElementById("leaderboard-modal").style.display = "flex";
-  setTimeout(() => document.getElementById("player-initials").focus(), 300);
 }
 
 // ---------------------------------------------------------------------------
