@@ -12,11 +12,11 @@
 // Rumors show up 1-3 days BEFORE an event starts. Some rumors are fake.
 //
 // Event shapes (multipliers on true value, by days since the event starts):
-//   HYPE     quick spike (~+80% on day 2), then craters below where it started,
+//   HYPE     quick spike (~+130% on day 2), then craters below where it started,
 //            then recovers. Sell the peak; don't be holding on day 4.
-//   OOP      out of print: climbs over 3 days and STAYS up forever.
+//   OOP      out of print: roughly doubles over 3 days and STAYS up forever.
 //   REPRINT  dips ~35%, shelves flood, recovers only part of the way.
-//   CRUNCH   short supply crunch: shelves go thin, price +25-30% for a few days.
+//   CRUNCH   short supply crunch: shelves go thin, price +35-45% for a few days.
 
 (function (root) {
   "use strict";
@@ -24,7 +24,8 @@
   // ---------------------------------------------------------------------------
   // Tuning knobs — everything a designer should touch lives here.
   // ---------------------------------------------------------------------------
-  const DAYS = 30;
+  const DAYS = 30;       // main game
+  const HORIZON = 120;   // market keeps running for the post-game Grail hunt
 
   const PRODUCTS = [
     { name: "The Base Set",          tier: "vintage", start: 600 },
@@ -49,10 +50,10 @@
   const weekends = d => d % 7 === 6 || d % 7 === 0;
   const LOCATIONS = {
     "Local Game Store": { side: "buy",  markup: 1.00, noise: 0.03, stock: [8, 12] },
-    "Cost-Mart":        { side: "buy",  markup: 0.85, noise: 0.04, stock: [1, 4] },
+    "Cost-Mart":        { side: "buy",  markup: 0.93, noise: 0.04, stock: [1, 4] },
     "eCommerce Store":  { side: "buy",  markup: 0.92, noise: 0.12, stock: [0, 14], shipDays: 3 },
-    "The Marketplace":  { side: "sell", markup: 0.90, noise: 0.04, depth: 0.01 },
-    "TCG Convention":   { side: "sell", markup: 1.06, noise: 0.05, depth: 0.025, openDays: weekends }
+    "The Marketplace":  { side: "sell", markup: 0.90, noise: 0.04, depth: 0.004 },
+    "TCG Convention":   { side: "sell", markup: 1.02, noise: 0.05, depth: 0.012, openDays: weekends }
   };
 
   // Online listings: chance EACH listed box sells per day, based on how far
@@ -64,12 +65,12 @@
   // magnitude jitter scales each curve's distance from 1.0.
   const EVENTS = {
     hype: {
-      price:  [[0, 1], [1, 1.4], [2, 1.8], [3, 1.2], [4, 0.7], [6, 0.85], [9, 1]],
+      price:  [[0, 1], [1, 1.6], [2, 2.3], [3, 1.4], [4, 0.65], [6, 0.8], [9, 1]],
       supply: [[0, 1], [1, 0.6], [2, 0.5], [4, 1.5], [7, 1]],
       magnitude: [0.8, 1.2]
     },
     oop: {
-      price:  [[0, 1], [1, 1.2], [3, 1.6]],
+      price:  [[0, 1], [1, 1.35], [3, 2.1]],
       supply: [[0, 1], [1, 0.5], [3, 0.35]],
       magnitude: [0.8, 1.3]
     },
@@ -79,7 +80,7 @@
       magnitude: [0.8, 1.2]
     },
     crunch: {
-      price:  [[0, 1], [1, 1.25], [3, 1.3], [5, 1]],
+      price:  [[0, 1], [1, 1.35], [3, 1.45], [5, 1]],
       supply: [[0, 1], [1, 0.3], [3, 0.3], [5, 1]],
       magnitude: [0.8, 1.2]
     }
@@ -87,16 +88,16 @@
 
   // How many events per run, and how rumors are sourced.
   const PLAN = {
-    realEvents: 7,
+    realEvents: 9,
     fakeRumors: 3,
     weights: { hype: 3, oop: 2, reprint: 2, crunch: 2 },
-    startDays: [4, 25],       // earliest/latest an event can begin
-    leadDays: [1, 3],         // rumor appears this many days before
+    startDays: [4, 26],       // earliest/latest an event can begin
+    leadDays: [2, 4],         // rumor appears this many days before
     sameProductGap: 7,        // min days between events on one product
-    // who reports real vs fake rumors. Leakers are right ~85% of the time,
-    // creators ~55%. Players learn to weigh the source.
+    // who reports real vs fake rumors. Leakers are right ~90% of the time,
+    // creators ~60%. Players learn to weigh the source.
     leakerShareOfReal: 0.6,
-    leakerShareOfFake: 0.25
+    leakerShareOfFake: 0.15
   };
 
   const HEADLINES = {
@@ -191,11 +192,13 @@
     const names = PRODUCTS.map(p => p.name);
     const events = [];
 
+    const blocks = Math.ceil(HORIZON / DAYS);
     let guard = 0;
-    while (events.length < PLAN.realEvents && guard++ < 500) {
+    while (events.length < PLAN.realEvents * blocks && guard++ < 2000) {
+      const block = Math.floor(events.length / PLAN.realEvents) * DAYS;
       const type = rng.weighted(PLAN.weights);
       const product = rng.pick(names);
-      const start = rng.int(PLAN.startDays[0], PLAN.startDays[1]);
+      const start = block + rng.int(PLAN.startDays[0], PLAN.startDays[1]);
       const clash = events.some(e => e.product === product && Math.abs(e.start - start) < PLAN.sameProductGap);
       if (clash) continue;
       const lead = rng.int(PLAN.leadDays[0], PLAN.leadDays[1]);
@@ -209,10 +212,11 @@
     }
     const fakes = [];
     guard = 0;
-    while (fakes.length < PLAN.fakeRumors && guard++ < 500) {
+    while (fakes.length < PLAN.fakeRumors * blocks && guard++ < 2000) {
+      const block = Math.floor(fakes.length / PLAN.fakeRumors) * DAYS;
       const type = rng.weighted(PLAN.weights);
       const product = rng.pick(names);
-      const rumorDay = rng.int(2, DAYS - 3);
+      const rumorDay = block + rng.int(2, DAYS - 3);
       const clash = events.concat(fakes).some(e => e.product === product && Math.abs(e.rumorDay - rumorDay) < 4);
       if (clash) continue;
       fakes.push({
@@ -226,17 +230,17 @@
 
   // Precompute every day's true value, quotes and stock so the market is
   // identical for everyone on the same seed, no matter what they do.
-  function buildSeries(seed, plan) {
+  function buildSeries(seed, plan, opts) {
     const rng = makeRng(seed + "|series");
     const series = {}; // series[product] = { base[], value[], supply[] }
     PRODUCTS.forEach(p => {
       const t = TIERS[p.tier];
       const base = [p.start];
-      for (let d = 1; d <= DAYS; d++) {
+      for (let d = 1; d <= HORIZON; d++) {
         base.push(base[d - 1] * (1 + t.drift + t.vol * rng.gauss()));
       }
       const value = [], supply = [];
-      for (let d = 0; d <= DAYS; d++) {
+      for (let d = 0; d <= HORIZON; d++) {
         let pm = 1, sm = 1;
         plan.events.filter(e => e.product === p.name).forEach(e => {
           pm *= curveAt(EVENTS[e.type].price, d - e.start, e.mag);
@@ -249,8 +253,11 @@
     });
 
     const quotes = {}; // quotes[day][loc][product] = { price, stock }
-    for (let d = 0; d <= DAYS; d++) {
+    const mystery = {}; // mystery[day][loc] = price, if a store has a mystery box that day
+    const mrng = makeRng(seed + "|mystery");
+    for (let d = 0; d <= HORIZON; d++) {
       quotes[d] = {};
+      mystery[d] = {};
       Object.entries(LOCATIONS).forEach(([loc, L]) => {
         quotes[d][loc] = {};
         PRODUCTS.forEach(p => {
@@ -262,9 +269,13 @@
           }
           quotes[d][loc][p.name] = { price, stock };
         });
+        if (L.side === "buy" && opts.mysteryChance && mrng.next() < opts.mysteryChance) {
+          const [lo, hi] = opts.mysteryPrice || [120, 220];
+          mystery[d][loc] = Math.round(lo + mrng.next() * (hi - lo));
+        }
       });
     }
-    return { series, quotes };
+    return { series, quotes, mystery };
   }
 
   function headlinesFor(day, plan) {
@@ -284,10 +295,13 @@
   // ---------------------------------------------------------------------------
   // Public market object
   // ---------------------------------------------------------------------------
-  function create(seed) {
+  // opts: { mysteryChance, mysteryPrice } — mystery box days (seeded, so
+  // everyone on the same seed sees the same boxes; contents are per player).
+  function create(seed, opts = {}) {
     seed = seed == null ? String(Math.floor(Math.random() * 1e9)) : String(seed);
     const plan = planRun(seed);
-    const { series, quotes } = buildSeries(seed, plan);
+    const { series, quotes, mystery } = buildSeries(seed, plan, opts);
+    const mysteryTaken = {};
     const listingRng = makeRng(seed + "|listings");
 
     let day = 1;
@@ -301,6 +315,7 @@
     const m = {
       seed,
       DAYS,
+      HORIZON,
       products: PRODUCTS.map(p => p.name),
       buyLocations: Object.keys(LOCATIONS).filter(l => LOCATIONS[l].side === "buy"),
       sellLocations: Object.keys(LOCATIONS).filter(l => LOCATIONS[l].side === "sell"),
@@ -352,8 +367,23 @@
 
       headlines() { return headlinesFor(day, plan); },
 
-      nextDay() {
-        if (day >= DAYS) return false;
+      // Mystery box at this store today? Returns price or null. One per store per day.
+      mysteryBox(loc) {
+        const pr = mystery[day] && mystery[day][loc];
+        return pr && !mysteryTaken[day + loc] ? pr : null;
+      },
+      takeMysteryBox(loc) {
+        const pr = m.mysteryBox(loc);
+        if (!pr) return null;
+        mysteryTaken[day + loc] = true;
+        return pr;
+      },
+      // Today's true value (for ripping cash-back and end-of-run net worth).
+      valueNow(p) { return series[p].value[day]; },
+
+      // Sim bots stop at the main-game end; the real game keeps going for the post-game.
+      nextDay(limit = HORIZON) {
+        if (day >= limit) return false;
         day++;
         resetDay();
         return true;
@@ -368,7 +398,7 @@
     return m;
   }
 
-  const api = { create, PRODUCTS, LOCATIONS, EVENTS, TIERS, PLAN, LISTING, curveAt, DAYS };
+  const api = { create, PRODUCTS, LOCATIONS, EVENTS, TIERS, PLAN, LISTING, curveAt, DAYS, HORIZON };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.TCGMarket = api;
 })(typeof window !== "undefined" ? window : globalThis);

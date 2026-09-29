@@ -208,3 +208,15 @@ ul {
     margin-top: 8px;
   }
 }
+
+/* ---- Rent, debt, shop goal, Grail post-game ---- */
+#money-panel { border-top: 2px dashed #aaa; margin-top: 8px; padding-top: 6px; font-size: 0.75rem; }
+#money-panel p { margin: 6px 0; }
+#money-panel button, .rip-btn { font-family: inherit; font-size: 0.6rem; padding: 4px 6px; margin-left: 4px; cursor: pointer; }
+#money-panel button:disabled { opacity: 0.4; cursor: default; }
+#open-shop:not(:disabled) { background: #e06666; color: #fff; border: 2px solid #222; }
+.rip-btn { background: #222; color: #ffe27a; border: 2px solid #222; }
+.mystery-row td { background: #fff3c4; }
+#postgame-banner { max-width: 900px; margin: 0 auto 10px; padding: 10px; background: #222; color: #ffe27a; font-size: 0.7rem; text-align: center; border: 3px solid #e06666; }
+.share-preview { background: #111; color: #9fe6ff; padding: 10px; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; text-align: left; border: 2px solid #444; }
+.share-btn { font-family: inherit; font-size: 0.8rem; padding: 10px 18px; background: #e06666; color: #fff; border: 3px solid #222; cursor: pointer; margin: 6px 0 12px; }

@@ -213,7 +213,7 @@
           skip.style.display = "none";
           const s = showScreen(`
             <div class="intro-title">TCG SCALPER</div>
-            <div class="intro-sub">30 DAYS. $1,000. BUY LOW. SELL HIGH.</div>
+            <div class="intro-sub">$1,000. 30 DAYS. OPEN YOUR SHOP.</div>
             <div class="intro-menu">
               <button type="button" data-choice="tutorial">HOW TO PLAY</button>
               <button type="button" data-choice="play">JUMP RIGHT IN</button>
@@ -282,9 +282,11 @@
   // ---------------------------------------------------------------------------
   const TUTORIAL = [
     { target: null,
-      t: "Listen up, rookie. You've got 30 days and $1,000. When day 30 ends, CASH is your score. Unsold product counts for nothing." },
+      t: "Listen up, rookie. You've got $1,000 and 30 days to raise $8,000 and open your OWN card shop. Do it fast. The day you open is your score." },
     { target: ".stats-inventory",
-      t: "Your wallet, where you're standing, and your stash. Online orders show up here with an arrival countdown." },
+      t: "Your wallet and your stash. Hit RIP on any box you own to open it: usually you lose a little, but every box is a shot at THE GRAIL." },
+    { target: "#money-panel",
+      t: "Rent's due every 7 days. Come up short and the loan shark covers it at 5% a DAY. You can borrow on purpose to go big on a hot tip. Owe $10K and you're evicted." },
     { target: () => document.querySelectorAll(".locations")[0],
       t: "BUY spots. Game Store = steady stock. Cost-Mart = thin shelves. eCommerce = wild prices, and it ships in 3 days." },
     { target: ".market-locations",
@@ -297,6 +299,8 @@
       t: "Or list online at your own price. It sells while you do other things, minus a 13% fee. Price it too greedy and it just sits." },
     { target: ".next-day",
       t: "Done for the day? Hit NEXT DAY. Heads up: a clock is always ticking. Every 2 minutes, shelves sell out. Move fast." },
+    { target: null,
+      t: "Open your shop and the game keeps going: rent stops, your shop earns daily, and you hunt THE GRAIL. Watch for mystery boxes and god packs." },
     { target: null, last: true,
       t: "That's the game. Buy low. Sell high. Don't go broke. Let's see what you've got." }
   ];

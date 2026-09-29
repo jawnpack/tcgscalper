@@ -21,12 +21,20 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
+  <div id="postgame-banner" style="display:none">🏆 POST-GAME: Hunt THE GRAIL. RIP boxes from your inventory or grab mystery boxes.</div>
   <div class="container">
     <h1>TCG Scalper Emulator</h1>
     <h2>Day: <span id="day">1</span></h2>
     <div class="stats-inventory">
       <p>Current Location: <span id="location">Local Game Store</span></p>
       <p>Money: $<span id="money">1000.00</span></p>
+      <div id="money-panel">
+        <p>Debt: <span id="debt">$0</span>
+          <button type="button" id="pay-debt" onclick="payDebt()">Pay off</button>
+          <button type="button" id="borrow" onclick="borrow(500)">Borrow $500</button></p>
+        <p id="rent-line"></p>
+        <p id="shop-line"></p>
+      </div>
       <h3>Your Inventory</h3>
       <ul id="inventory-list"></ul>
     </div>
@@ -100,18 +108,23 @@
   <!-- Leaderboard Modal -->
   <div id="leaderboard-modal" class="modal" style="display: none;">
     <div class="modal-content">
-      <h2>Game Over!</h2>
-      <p>Your final stats:</p>
+      <h2>Run Over</h2>
+      <p id="final-reason"></p>
+      <p>Rank: <strong id="final-rank"></strong></p>
       <div id="final-stats">
-        <p>Money: $<span id="final-money">0.00</span></p>
+        <p>Net worth: $<span id="final-money">0</span></p>
+        <p>Shop opened: <span id="final-shop">—</span></p>
+        <p>Grail: <span id="final-grail">—</span></p>
         <p>Days played: <span id="final-days">0</span></p>
         <p>Total quantity bought: <span id="final-bought">0</span></p>
         <p>Total quantity sold: <span id="final-sold">0</span></p>
       </div>
+      <pre id="final-share" class="share-preview"></pre>
+      <button type="button" class="share-btn" onclick="shareRun('end')">SHARE</button>
       <div id="leaderboard-form">
         <p>Enter your initials (up to 3 characters):</p>
         <input type="text" id="player-initials" maxlength="3" placeholder="ABC">
-        <button id="submit-score">Submit Score</button>
+        <button id="submit-score" onclick="submitScore()">Submit Score</button>
       </div>
       <div id="leaderboard-display" style="display: none;">
         <h3>Top Players</h3>
@@ -120,23 +133,25 @@
             <tr>
               <th>Rank</th>
               <th>Player</th>
-              <th>Money</th>
+              <th>Net worth</th>
+              <th>Shop</th>
+              <th>Grail</th>
               <th>Days</th>
-              <th>Bought</th>
-              <th>Sold</th>
             </tr>
           </thead>
           <tbody id="leaderboard-body">
             <!-- Populated dynamically -->
           </tbody>
         </table>
-        <button id="play-again">Play Again</button>
+        <button id="play-again" onclick="playAgain()">Play Again (Free Play)</button>
       </div>
     </div>
   </div>
 
   <script src="js/market.js"></script>
+  <script src="js/rules.js"></script>
   <script src="js/intro.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/progress.js"></script>
 </body>
 </html>

@@ -133,9 +133,9 @@ function addModalStyles() {
   style.textContent = `
     .modal {
       position: fixed;
-      top: 50;
-      left: 50;
-      width: 80%;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 100%;
       background-color: rgba(0, 0, 0, 0.7);
       display: flex;
@@ -148,8 +148,10 @@ function addModalStyles() {
       background-color: white;
       padding: 20px;
       border-radius: 5px;
-      width: 80%;
-      max-width: 500px;
+      width: 92%;
+      max-width: 560px;
+      max-height: 92vh;
+      overflow: auto;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     
@@ -401,6 +403,7 @@ function render() {
   document.getElementById("location").textContent = state.location;
   document.getElementById("market-location").textContent = state.location;
   document.getElementById("money").textContent = state.money.toFixed(2);
+  if (state.runOver) document.querySelectorAll(".container button, .locations button, .market-locations button, .online-store button, .next-day button").forEach(b => (b.disabled = true));
   document.getElementById("rumor").textContent = state.rumor;
 
   const inventoryList = document.getElementById("inventory-list");
@@ -427,7 +430,7 @@ function render() {
       pendingText = ` <span style="font-style: italic;">(${groups.join(', ')})</span>`;
     }
 
-    li.innerHTML = `${p}: ${inventoryQty}${pendingText}`;
+    li.innerHTML = `${p}: ${inventoryQty}${pendingText}${ripButtonHtml(p)}`;
     inventoryList.appendChild(li);
   });
 
@@ -494,6 +497,8 @@ function render() {
     
     table.appendChild(row);
   });
+  const mRow = mysteryRow();
+  if (mRow) table.appendChild(mRow);
   
   const listingSelect = document.getElementById("listing-product");
   if (listingSelect) {
@@ -520,6 +525,7 @@ function render() {
     showNotification("Sold out products today: " + state.soldOutProducts.join(", "), "warning");
     state.soldOutProducts = [];
   }
+  renderProgress();
 }
 
 function showSuccessCheckmark(product) {
@@ -536,6 +542,7 @@ function showSuccessCheckmark(product) {
 }
 
 function buy(product) {
+  if (state.runOver) return;
   const price = market.price(state.location, product);
   const stock = market.stock(state.location, product);
   if (price != null && stock > 0 && state.money >= price) {
@@ -543,6 +550,7 @@ function buy(product) {
     if (!result.ok) return;
     state.money -= price;
     syncMarket();
+    trackBuy(product, price);
 
     // Track the purchase
     gameStats.totalBought++;
@@ -567,6 +575,7 @@ function buy(product) {
 }
 
 function sell(product) {
+  if (state.runOver) return;
   if (!market.isOpen(state.location)) {
     showNotification(`${state.location} is closed today.`, "error");
     return;
@@ -575,6 +584,7 @@ function sell(product) {
     const { price } = market.sell(state.location, product);
     syncMarket();
     state.money += price;
+    trackSell(product, price);
     state.inventory[product]--;
         
     // Track the sale
@@ -601,7 +611,12 @@ function travel(newLocation) {
 }
 
 // Function to show a modal notification that requires acknowledgment
-function showModalNotification(message, title = "Notification") {
+// Modals queue up so a rent notice never hides a shop/grail moment.
+const modalQueue = [];
+let modalOpen = false;
+function showModalNotification(message, title = "Notification", onClose) {
+  if (modalOpen) { modalQueue.push([message, title, onClose]); return; }
+  modalOpen = true;
   // Create modal container if it doesn't exist
   let modalContainer = document.getElementById("modal-container");
   if (!modalContainer) {
@@ -622,7 +637,7 @@ function showModalNotification(message, title = "Notification") {
   
   // Create modal content
   const modal = document.createElement("div");
-  modal.className = "modal";
+  modal.className = "notice-modal";
   modal.style.backgroundColor = "#fff";
   modal.style.padding = "20px";
   modal.style.borderRadius = "5px";
@@ -656,11 +671,15 @@ function showModalNotification(message, title = "Notification") {
   acknowledgeButton.style.border = "none";
   acknowledgeButton.style.borderRadius = "4px";
   acknowledgeButton.style.cursor = "pointer";
-  acknowledgeButton.style.float = "right";
+  acknowledgeButton.style.display = "block";
+  acknowledgeButton.style.marginLeft = "auto";
   
   acknowledgeButton.onclick = function() {
     modalContainer.style.display = "none";
     modal.remove();
+    modalOpen = false;
+    if (typeof onClose === "function") onClose();
+    if (modalQueue.length) showModalNotification(...modalQueue.shift());
   };
   
   modal.appendChild(acknowledgeButton);
@@ -698,10 +717,11 @@ function generateWelcomeMessage() {
 }
 
 function nextDay() {
-  if (state.day >= 30 || state.money <= 0) {
-    showGameOverModal();
-    return;
-  }
+  if (state.runOver) return;
+  // Record where the day you're leaving ended up (for the share strip)
+  state.netWorthHistory.push(Math.round(netWorth()));
+  // Main game over without a shop? End after Day 30.
+  if (!state.shopOpen && state.day >= TCGRules.RULES.mainDays) { state.day++; checkRunEnd(); return; }
   
   // Get the selected location before moving to the next day
   const locationSelect = document.getElementById("location-select");
@@ -720,6 +740,10 @@ function nextDay() {
   state.day++;
   market.nextDay();
   syncMarket();
+
+  // Rent / shop income / loan interest
+  economyTick().forEach(msg => showNotification(msg, msg.startsWith("🏠") && msg.includes("short") ? "error" : "info"));
+  if (checkRunEnd()) return;
 
   // Start a new timer
   startProductTimer();
@@ -798,38 +822,6 @@ function nextDay() {
   render();
   renderOnlineListings();
   
-  // Check for game over after all day operations
-  if (state.day >= 30 || state.money <= 0) {
-    setTimeout(() => {
-      showGameOverModal();
-    }, 500);
-  }
-}
-
-// Display the game over modal with leaderboard form
-function showGameOverModal() {
-  // Stop the timer if it's running
-  if (state.timer) {
-    clearInterval(state.timer);
-  }
-  
-  // Update the final stats
-  document.getElementById("final-money").textContent = state.money.toFixed(2);
-  document.getElementById("final-days").textContent = state.day;
-  document.getElementById("final-bought").textContent = gameStats.totalBought;
-  document.getElementById("final-sold").textContent = gameStats.totalSold;
-  
-  // Show the leaderboard modal
-  document.getElementById("leaderboard-modal").style.display = "flex";
-  
-  // Focus on the initials input
-  setTimeout(() => {
-    document.getElementById("player-initials").focus();
-  }, 300);
-  
-  // Add event listeners for form submission
-  document.getElementById("submit-score").addEventListener("click", submitScore);
-  document.getElementById("play-again").addEventListener("click", playAgain);
 }
 
 // Submit the score to Firebase
@@ -842,9 +834,12 @@ function submitScore() {
   }
   
   const scoreData = {
-    initials: initials,
-    money: state.money,
+    initials: initials.replace(/[^A-Za-z0-9]/g, "").slice(0, 3).toUpperCase(),
+    money: Math.round(netWorth()),
     days: state.day,
+    shopDay: state.shopDay || null,
+    grailBox: state.grailBox || null,
+    board: state.runLabel,
     bought: gameStats.totalBought,
     sold: gameStats.totalSold,
     timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -887,15 +882,17 @@ function displayLeaderboard() {
       // Update the leaderboard table
       leaderboardBody.innerHTML = '';
       scores.forEach((score, index) => {
+        // textContent only: never render leaderboard data as HTML
         const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${score.initials}</td>
-          <td>$${score.money.toFixed(2)}</td>
-          <td>${score.days}</td>
-          <td>${score.bought}</td>
-          <td>${score.sold}</td>
-        `;
+        [index + 1, String(score.initials || "").slice(0, 3),
+         "$" + Math.round(Number(score.money) || 0).toLocaleString(),
+         score.shopDay ? "Day " + Number(score.shopDay) : "—",
+         score.grailBox ? "#" + Number(score.grailBox) : "—",
+         Number(score.days) || 0].forEach(v => {
+          const td = document.createElement('td');
+          td.textContent = v;
+          row.appendChild(td);
+        });
         leaderboardBody.appendChild(row);
       });
     })
@@ -908,6 +905,7 @@ function displayLeaderboard() {
 // Restart the game
 function playAgain() {
   document.getElementById("leaderboard-modal").style.display = "none";
+  playFree = true; // the Daily Market is one shot; replays are free play
   initializeGame();
 }
 
@@ -926,7 +924,8 @@ function initializeGame() {
     totalSold: 0
   };  
   
-  // Create notification container
+  // Create notification container (once)
+  if (!document.getElementById("notification-container")) {
   const notifContainer = document.createElement("div");
   notifContainer.id = "notification-container";
   notifContainer.style.position = "fixed";
@@ -935,11 +934,13 @@ function initializeGame() {
   notifContainer.style.width = "300px";
   notifContainer.style.zIndex = "1000";
   document.body.appendChild(notifContainer);
+  }
   
   // Reset game state
   state.day = 1;
   state.location = "Local Game Store";
-  state.money = 1000;
+  state.money = TCGRules.RULES.startCash;
+  resetProgress();
   state.inventory = {};
   state.rumor = "None yet...";
   state.deliveryQueue = [];
@@ -953,9 +954,14 @@ function initializeGame() {
     state.priceHistory[p] = [];
   });
   
-  // Fresh market (same seed if one is in the URL)
-  market = TCGMarket.create(seedFromUrl());
+  // Fresh market: today's Daily Market, a friend's ?seed=, or free play
+  const run = seedForRun();
+  market = TCGMarket.create(run.seed, {
+    mysteryChance: TCGRules.RULES.mysteryChancePerDay,
+    mysteryPrice: TCGRules.RULES.mysteryPrice
+  });
   state.seed = market.seed;
+  state.runLabel = run.label;
   syncMarket();
   const news = market.headlines();
   state.rumor = news.length ? news.join("\n") : "No news yet...";
@@ -963,7 +969,7 @@ function initializeGame() {
   render();
   
   // Initial Stock info as notification
-  let stockMsg = "Welcome Scalper! Here is the initial stock:<br>";
+  let stockMsg = `<strong>${state.runLabel}</strong><br>Rent is due every 7 days. Raise $${TCGRules.RULES.lease.toLocaleString()} to open your own shop before Day ${TCGRules.RULES.mainDays}.<br><br>Here is today's stock:<br>`;
   buyLocations.forEach(loc => {
     stockMsg += `<br><strong>${loc}:</strong><br>`;
     products.forEach(p => {
