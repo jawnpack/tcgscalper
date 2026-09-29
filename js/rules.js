@@ -21,7 +21,7 @@
     evictAt: 10000,        // debt past this = evicted, run over
 
     // Shop goal
-    lease: 8000,           // cash needed to open your card shop (sim: strong players ~Day 21)
+    lease: 12000,          // cash needed to open your card shop (sim: strong players ~Day 20, flip-only ~Day 27)
     shopIncome: [40, 120],  // daily walk-in sales (singles, sleeves) once open; rent stops once you own the shop
     // Your shop's shelves: boxes you stock and price yourself. No platform fee,
     // better odds than online. Chance per box per day = atValue at/below value,

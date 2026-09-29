@@ -19,7 +19,7 @@ const PLACES = [
   { id: "Local Game Store", short: "Game Store",  kind: "buy",    slug: "lgs",         note: "Steady stock" },
   { id: "Cost-Mart",        short: "Cost-Mart",   kind: "buy",    slug: "costmart",    note: "Cheaper, thin shelves" },
   { id: "eCommerce Store",  short: "eComm",       kind: "buy",    slug: "ecom",        note: "Wild prices, ships in 3 days" },
-  { id: "The Marketplace",  short: "Marketplace", kind: "sell",   slug: "marketplace", note: "Open daily, pays under value" },
+  { id: "The Marketplace",  short: "Marketplace", kind: "sell",   slug: "marketplace", note: "Open daily. Low-end boxes flip for a profit" },
   { id: "TCG Convention",   short: "Convention",  kind: "sell",   slug: "convention",  note: "Sat & Sun only, pays best" },
   { id: "Online Store",     short: "Online",      kind: "online", slug: "online",      note: "List at your price, 13% fee" },
   { id: "Your Shop",        short: "Your Shop",   kind: "shop",   slug: "shop",        note: "Stock your shelves, set prices" }

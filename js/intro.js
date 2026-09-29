@@ -282,7 +282,7 @@
   // ---------------------------------------------------------------------------
   const TUTORIAL = [
     { target: null,
-      t: "Listen up, rookie. You've got $1,000 and 30 days to raise $8,000 and open your OWN card shop. Do it fast. The day you open is your score." },
+      t: "Listen up, rookie. You've got $1,000 and 30 days to raise $12,000 and open your OWN card shop. Do it fast. The day you open is your score." },
     { target: "#topbar",
       t: "The day and your cash. Every day you can visit as many places as you like. Nothing moves until you hit NEXT DAY." },
     { target: "#tb-more",

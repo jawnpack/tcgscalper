@@ -37,13 +37,17 @@
   ];
 
   // drift = average daily change in baseline; vol = daily wobble
+  // volGrowth: how much the daily wobble grows as the market matures.
+  // Vintage starts calm and gets wild: by Day 30 its wobble is 1 + volGrowth times bigger.
+  // rumorWeight: how often events and rumors land on this tier.
   const TIERS = {
-    vintage: { drift: 0.005,  vol: 0.02 },  // slow, steady climber
-    mid:     { drift: 0.0,    vol: 0.035 },
-    modern:  { drift: -0.002, vol: 0.05 }   // choppy, slowly bleeds (reprints)
+    vintage: { drift: 0.005,  vol: 0.015, volGrowth: 3.0, rumorWeight: 1 }, // the high end: calm early, volatile late
+    mid:     { drift: 0.0,    vol: 0.03,  volGrowth: 0,   rumorWeight: 3 },
+    modern:  { drift: -0.002, vol: 0.04,  volGrowth: 0,   rumorWeight: 3 }  // low end: where the rumors hit
   };
+  const volOn = (tier, d) => tier.vol * (1 + tier.volGrowth * Math.min(d, DAYS) / DAYS);
 
-  // markup: multiplier on true value. noise: +/- daily wiggle.
+  // markup: multiplier on true value (a number, or one per tier). noise: +/- daily wiggle.
   // stock: [min, max] boxes per product per day (buy side).
   // depth: sell side only — each box you sell here today knocks the price down.
   // openDays: optional — which days a location is open (day 1 = Monday).
@@ -52,8 +56,10 @@
     "Local Game Store": { side: "buy",  markup: 1.00, noise: 0.03, stock: [8, 12] },
     "Cost-Mart":        { side: "buy",  markup: 0.93, noise: 0.04, stock: [1, 4] },
     "eCommerce Store":  { side: "buy",  markup: 0.92, noise: 0.12, stock: [0, 14], shipDays: 3 },
-    "The Marketplace":  { side: "sell", markup: 0.90, noise: 0.04, depth: 0.004 },
-    "TCG Convention":   { side: "sell", markup: 1.02, noise: 0.05, depth: 0.012, openDays: weekends }
+    // Sell spots pay by tier: lower-end boxes flip for a small profit over
+    // retail; vintage only pays when the market moves your way.
+    "The Marketplace":  { side: "sell", markup: { vintage: 0.93, mid: 1.04, modern: 1.04 }, noise: 0.04, depth: 0.004 },
+    "TCG Convention":   { side: "sell", markup: { vintage: 1.02, mid: 1.10, modern: 1.10 }, noise: 0.05, depth: 0.012, openDays: weekends }
   };
 
   // Online listings: chance EACH listed box sells per day, based on how far
@@ -190,6 +196,8 @@
   function planRun(seed) {
     const rng = makeRng(seed + "|plan");
     const names = PRODUCTS.map(p => p.name);
+    const productWeights = {};
+    PRODUCTS.forEach(p => (productWeights[p.name] = TIERS[p.tier].rumorWeight));
     const events = [];
 
     const blocks = Math.ceil(HORIZON / DAYS);
@@ -197,7 +205,7 @@
     while (events.length < PLAN.realEvents * blocks && guard++ < 2000) {
       const block = Math.floor(events.length / PLAN.realEvents) * DAYS;
       const type = rng.weighted(PLAN.weights);
-      const product = rng.pick(names);
+      const product = rng.weighted(productWeights);
       const start = block + rng.int(PLAN.startDays[0], PLAN.startDays[1]);
       const clash = events.some(e => e.product === product && Math.abs(e.start - start) < PLAN.sameProductGap);
       if (clash) continue;
@@ -215,7 +223,7 @@
     while (fakes.length < PLAN.fakeRumors * blocks && guard++ < 2000) {
       const block = Math.floor(fakes.length / PLAN.fakeRumors) * DAYS;
       const type = rng.weighted(PLAN.weights);
-      const product = rng.pick(names);
+      const product = rng.weighted(productWeights);
       const rumorDay = block + rng.int(2, DAYS - 3);
       const clash = events.concat(fakes).some(e => e.product === product && Math.abs(e.rumorDay - rumorDay) < 4);
       if (clash) continue;
@@ -237,7 +245,7 @@
       const t = TIERS[p.tier];
       const base = [p.start];
       for (let d = 1; d <= HORIZON; d++) {
-        base.push(base[d - 1] * (1 + t.drift + t.vol * rng.gauss()));
+        base.push(base[d - 1] * (1 + t.drift + volOn(t, d) * rng.gauss()));
       }
       const value = [], supply = [];
       for (let d = 0; d <= HORIZON; d++) {
@@ -262,7 +270,8 @@
         quotes[d][loc] = {};
         PRODUCTS.forEach(p => {
           const v = series[p.name].value[d];
-          const price = Math.max(5, Math.round(v * L.markup * (1 + L.noise * (rng.next() * 2 - 1))));
+          const mk = typeof L.markup === "number" ? L.markup : L.markup[p.tier];
+          const price = Math.max(5, Math.round(v * mk * (1 + L.noise * (rng.next() * 2 - 1))));
           let stock = null;
           if (L.side === "buy") {
             stock = Math.max(0, Math.round(rng.int(L.stock[0], L.stock[1]) * series[p.name].supply[d]));
