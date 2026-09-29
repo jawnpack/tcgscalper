@@ -1214,6 +1214,18 @@ function initializeGame() {
   startProductTimer();
 }
 
-window.onload = () => {
+window.onload = async () => {
+  // First visit (or ?intro=1): arcade cut scene -> title -> optional tutorial.
+  // The 2-minute sellout timer only starts once the player is actually in the game.
+  if (window.Intro) {
+    if (Intro.shouldPlay()) {
+      try {
+        await Intro.run(render);
+      } catch (e) {
+        console.error("Intro failed, starting game anyway:", e);
+      }
+    }
+    Intro.addReplayButton();
+  }
   initializeGame();
 };
