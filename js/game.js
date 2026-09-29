@@ -16,17 +16,15 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-const products = [
-  "The Base Set",
-  "The Nostalgia Set",
-  "Dark Flames",
-  "Masks of Dawn",
-  "Prizms of Change",
-  "Inevitable Opponents"
-];
-
-const buyLocations = ["Local Game Store", "Cost-Mart", "eCommerce Store"];
-const sellLocations = ["The Marketplace", "TCG Convention"];
+// Market + rumors live in js/market.js. ?seed=abc123 replays an exact market.
+function seedFromUrl() {
+  try { return new URLSearchParams(location.search).get("seed"); } catch (e) { return null; }
+}
+let market = TCGMarket.create(seedFromUrl());
+const products = market.products;
+const buyLocations = market.buyLocations;
+const sellLocations = market.sellLocations;
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 let state = {
   day: 1,
@@ -41,9 +39,6 @@ let state = {
   onlineListings: [],
   priceHistory: {},
   soldOutProducts: [],
-  rumorsLowStock: null,
-  rumorsNoReprint: null,
-  rumorsOverprint: null,
   notifications: [],
   timer: null,
   timerDisplay: null,
@@ -67,40 +62,18 @@ let gameStats = {
   totalSold: 0
 };
 
-buyLocations.concat(sellLocations).forEach(loc => {
-  marketPrices[loc] = {};
-  marketStock[loc] = {};
-  products.forEach(p => {
-    const price = generatePrice(p);
-    marketPrices[loc][p] = price;
-    marketStock[loc][p] = generateStock(loc);
-    if (buyLocations.includes(loc)) {
-      state.priceHistory[p].push(price);
-    }
+// Mirror the engine into the simple lookup tables the UI already uses.
+function syncMarket() {
+  buyLocations.concat(sellLocations).forEach(loc => {
+    marketPrices[loc] = marketPrices[loc] || {};
+    marketStock[loc] = marketStock[loc] || {};
+    products.forEach(p => {
+      marketPrices[loc][p] = market.price(loc, p);   // null = closed today
+      marketStock[loc][p] = market.stock(loc, p);
+    });
   });
-});
-
-function generatePrice(product) {
-  const day = state.day;
-  const tier1 = ["The Base Set", "The Nostalgia Set"];
-  const tier2 = ["Dark Flames", "Masks of Dawn"];
-  const tier3 = ["Prizms of Change", "Inevitable Opponents"];
-
-  if (tier1.includes(product)) {
-    return randomInRange(day <= 15 ? 400 : 600, day <= 15 ? 800 : 1200);
-  }
-  if (tier2.includes(product)) {
-    return randomInRange(day <= 15 ? 80 : 150, day <= 15 ? 250 : 300);
-  }
-  return randomInRange(day <= 15 ? 120 : 200, day <= 15 ? 300 : 500);
 }
-
-function generateStock(location) {
-  if (location === "Local Game Store") return randomInRange(8, 12);
-  if (location === "Cost-Mart") return randomInRange(3, 6);
-  if (location === "eCommerce Store") return randomInRange(1, 15);
-  return randomInRange(5, 10);
-}
+syncMarket();
 
 function randomInRange(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -331,6 +304,7 @@ function randomlySellOutProducts() {
       const productsToSellOut = shuffled.slice(0, Math.min(numProductsToSellOut, shuffled.length));
       
       productsToSellOut.forEach(p => {
+        market.sellOut(loc, p);
         marketStock[loc][p] = 0;
         newSoldOuts.push(`${p} at ${loc}`);
       });
@@ -423,7 +397,7 @@ function returnListingToInventory(index) {
 }
 
 function render() {
-  document.getElementById("day").textContent = state.day;
+  document.getElementById("day").textContent = `${state.day} (${WEEKDAYS[state.day % 7]})`;
   document.getElementById("location").textContent = state.location;
   document.getElementById("market-location").textContent = state.location;
   document.getElementById("money").textContent = state.money.toFixed(2);
@@ -462,6 +436,7 @@ function render() {
   products.forEach(product => {
     const price = marketPrices[state.location][product];
     const stock = marketStock[state.location][product];
+    const closed = price == null;
     const playerHas = state.inventory[product] > 0;
     const outOfStock = stock <= 0;
     
@@ -475,7 +450,8 @@ function render() {
     
     // Price and stock cell
     const priceCell = document.createElement("td");
-    priceCell.textContent = `$${price}${buyLocations.includes(state.location) ? ` (${stock} left)` : ''}`;
+    priceCell.textContent = closed ? "CLOSED TODAY"
+      : `$${price}${buyLocations.includes(state.location) ? ` (${stock} left)` : ''}`;
     row.appendChild(priceCell);
     
     // Buy button cell
@@ -501,7 +477,7 @@ function render() {
       sellButton.textContent = "Sell";
       sellButton.onclick = () => sell(product);
       
-      if (!playerHas) {
+      if (!playerHas || closed) {
         sellButton.disabled = true;
         sellButton.style.opacity = "0.4";
       }
@@ -560,42 +536,44 @@ function showSuccessCheckmark(product) {
 }
 
 function buy(product) {
-  const price = marketPrices[state.location][product];
-  const stock = marketStock[state.location][product];
-  if (stock > 0 && state.money >= price) {
+  const price = market.price(state.location, product);
+  const stock = market.stock(state.location, product);
+  if (price != null && stock > 0 && state.money >= price) {
+    const result = market.buy(state.location, product);
+    if (!result.ok) return;
     state.money -= price;
-    marketStock[state.location][product]--;
+    syncMarket();
 
     // Track the purchase
     gameStats.totalBought++;
     
-    if (state.location === "eCommerce Store") {
-      state.deliveryQueue.push({ product, quantity: 1, arrivalDay: state.day + 3 });
-      showNotification(`Bought ${product} for $${price}. Will be delivered in 3 days.`, "success");
+    if (result.arrivesDay > state.day) {
+      state.deliveryQueue.push({ product, quantity: 1, arrivalDay: result.arrivesDay });
+      showNotification(`Bought ${product} for $${price}. Arrives in ${result.arrivesDay - state.day} days.`, "success");
     } else {
       state.inventory[product]++;
       showNotification(`Bought ${product} for $${price}`, "success");
-    }
-
-    if (buyLocations.includes(state.location)) {
-      state.priceHistory[product].push(price);
-      if (state.priceHistory[product].length > 90) {
-        state.priceHistory[product].shift();
-      }
     }
 
     // Show green checkmark
     showSuccessCheckmark(product);
     
     render();
+  } else if (price == null) {
+    showNotification(`${state.location} is closed today.`, "error");
   } else {
     showNotification("Not enough money or product is out of stock!", "error");
   }
 }
 
 function sell(product) {
-  const price = marketPrices[state.location][product];
+  if (!market.isOpen(state.location)) {
+    showNotification(`${state.location} is closed today.`, "error");
+    return;
+  }
   if (state.inventory[product] > 0) {
+    const { price } = market.sell(state.location, product);
+    syncMarket();
     state.money += price;
     state.inventory[product]--;
         
@@ -616,159 +594,10 @@ function sell(product) {
 function travel(newLocation) {
   const oldLocation = state.location;  
   state.location = newLocation;
-  showNotification(`Traveled to ${newLocation}`, "info");
+  showNotification(market.isOpen(newLocation)
+    ? `Traveled to ${newLocation}`
+    : `${newLocation} is closed today. The Convention runs Sat & Sun.`, market.isOpen(newLocation) ? "info" : "warning");
   render();
-}
-
-// Initialize the rumor system tracking variables
-function initializeRumorSystem() {
-  state.rumorPool = {
-    lowStock: {
-      count: 3,
-      products: [...products].sort(() => Math.random() - 0.5).slice(0, 3),
-      used: false
-    },
-    noReprint: {
-      count: 3,
-      products: [...products].sort(() => Math.random() - 0.5).slice(0, 3),
-      used: false
-    },
-    overprint: {
-      count: 3,
-      products: [...products].sort(() => Math.random() - 0.5).slice(0, 3),
-      used: false
-    }
-  };
-  
-  state.rumorSchedule = [];
-  state.pendingRumorEffects = [];
-  
-  // Create a randomized schedule that places rumors at specific days
-  // Reserve some early days for lowStock, mid-game for overprint, late game for noReprint
-  
-  // Low stock rumors in early to mid game (days 2-15)
-  state.rumorPool.lowStock.products.forEach(product => {
-    let day = Math.floor(Math.random() * 14) + 2; // Days 2-15
-    while (state.rumorSchedule.some(r => r.day === day)) {
-      day = Math.floor(Math.random() * 14) + 2;
-    }
-    state.rumorSchedule.push({ day, type: 'lowStock', product });
-  });
-  
-  // Overprint rumors in mid game (days 10-20)
-  state.rumorPool.overprint.products.forEach(product => {
-    let day = Math.floor(Math.random() * 11) + 10; // Days 10-20
-    while (state.rumorSchedule.some(r => r.day === day)) {
-      day = Math.floor(Math.random() * 11) + 10;
-    }
-    state.rumorSchedule.push({ day, type: 'overprint', product });
-  });
-  
-  // No reprint rumors in late game (days 15-25)
-  state.rumorPool.noReprint.products.forEach(product => {
-    let day = Math.floor(Math.random() * 11) + 15; // Days 15-25
-    while (state.rumorSchedule.some(r => r.day === day)) {
-      day = Math.floor(Math.random() * 11) + 15;
-    }
-    state.rumorSchedule.push({ day, type: 'noReprint', product });
-  });
-}
-
-// Generate a rumor for the day
-function generateRumor() {
-  // Check if there's a scheduled rumor for today
-  const scheduledRumor = state.rumorSchedule.find(r => r.day === state.day);
-  
-  if (scheduledRumor) {
-    const { type, product } = scheduledRumor;
-    
-    switch (type) {
-      case "lowStock":
-        state.rumor = `${product} could be low in stock at distributors...`;
-        // Add to pending effects instead of setting immediately
-        state.pendingRumorEffects.push({ 
-          type: "lowStock", 
-          product, 
-          applyDay: state.day + 1 
-        });
-        break;
-      case "noReprint":
-        state.rumor = `Rumor is the TCG Company is not printing anymore ${product}...`;
-        // Add to pending effects instead of setting immediately
-        state.pendingRumorEffects.push({ 
-          type: "noReprint", 
-          product, 
-          applyDay: state.day + 1 
-        });
-        break;
-      case "overprint":
-        state.rumor = `I heard that a ton of ${product} is being reprinted...`;
-        // Add to pending effects instead of setting immediately
-        state.pendingRumorEffects.push({ 
-          type: "overprint", 
-          product, 
-          applyDay: state.day + 1 
-        });
-        break;
-    }
-    
-    console.log(`Day ${state.day}: Generated rumor of type ${type} for ${product}`);
-  } else {
-    state.rumor = "No news today...";
-  }
-}
-
-// Apply rumor effects to the market
-function applyRumorEffectsToMarket() {
-  // Process any pending rumor effects that should be applied today
-  const pendingEffects = state.pendingRumorEffects.filter(effect => effect.applyDay === state.day);
-  
-  pendingEffects.forEach(effect => {
-    const { type, product } = effect;
-    
-    switch (type) {
-      case "lowStock":
-        if (!state.rumorPool.lowStock.used) {
-          // Set stock to lower levels for the product
-          buyLocations.forEach(loc => {
-            marketStock[loc][product] = Math.max(0, marketStock[loc][product] - 5);
-          });
-          state.rumorPool.lowStock.used = true;
-          console.log(`Day ${state.day}: Applied lowStock rumor effect for ${product}`);
-          showNotification(`The rumors about ${product} being low in stock appear to be true! Stock levels have dropped.`, "warning");
-        }
-        break;
-        
-      case "noReprint":
-        if (!state.rumorPool.noReprint.used) {
-          // Make the product rarer and inflate its price
-          buyLocations.forEach(loc => {
-            marketPrices[loc][product] = Math.floor(marketPrices[loc][product] * 4);
-            marketStock[loc][product] = Math.floor(marketStock[loc][product] * 0.3);
-          });
-          state.rumorPool.noReprint.used = true;
-          console.log(`Day ${state.day}: Applied noReprint rumor effect for ${product}`);
-          showNotification(`It's confirmed! ${product} will not be reprinted. Prices have spiked dramatically!`, "warning");
-        }
-        break;
-        
-      case "overprint":
-        if (!state.rumorPool.overprint.used) {
-          // Increase stock and reduce price
-          buyLocations.forEach(loc => {
-            marketStock[loc][product] = Math.floor(marketStock[loc][product] * 4);
-            marketPrices[loc][product] = Math.floor(marketPrices[loc][product] * 0.6);
-          });
-          state.rumorPool.overprint.used = true;
-          console.log(`Day ${state.day}: Applied overprint rumor effect for ${product}`);
-          showNotification(`A massive reprint of ${product} has arrived! Prices have dropped and stock is plentiful.`, "info");
-        }
-        break;
-    }
-  });
-  
-  // Remove the effects we just processed
-  state.pendingRumorEffects = state.pendingRumorEffects.filter(effect => effect.applyDay !== state.day);
 }
 
 // Function to show a modal notification that requires acknowledgment
@@ -889,6 +718,8 @@ function nextDay() {
   }
   
   state.day++;
+  market.nextDay();
+  syncMarket();
 
   // Start a new timer
   startProductTimer();
@@ -908,87 +739,31 @@ function nextDay() {
     showNotification(`Deliveries arrived: ${arrivedDeliveries.join(", ")}`, "success");
   }
   
-  // Update the Online Listings Auto-Sell to track sales
-  const soldListings = [];
+  // Online listings: each listed box has a daily chance to sell. The closer
+  // the ask is to true market value, the better the odds. 13% platform fee.
+  const listingSales = [];
   for (let i = state.onlineListings.length - 1; i >= 0; i--) {
     const listing = state.onlineListings[i];
     listing.days = (listing.days || 0) + 1;
-    const history = state.priceHistory[listing.product].slice(-3);
-    const avgPrice = history.length > 0 ? history.reduce((a, b) => a + b, 0) / history.length : listing.price;
-    if (listing.price <= avgPrice * 3 && Math.random() < 0.25) {
-      state.money += listing.price * listing.quantity;
-      
-      // Track the sales from listings
-      gameStats.totalSold += listing.quantity;
-      
-      soldListings.push(listing);
-      state.onlineListings.splice(i, 1);
+    const r = market.listingSales(listing.product, listing.price, listing.quantity);
+    if (r.sold > 0) {
+      const payout = r.sold * r.payoutEach;
+      state.money += payout;
+      gameStats.totalSold += r.sold;
+      listing.quantity -= r.sold;
+      listingSales.push(`${r.sold}x ${listing.product} (+$${payout.toFixed(2)})`);
+      if (listing.quantity <= 0) state.onlineListings.splice(i, 1);
     } else if (listing.days >= 5) {
-      showNotification(`Your listing for ${listing.product} has not sold after 5 days. Consider withdrawing it.`, "warning");
+      showNotification(`Your ${listing.product} listing hasn't moved in ${listing.days} days. Price might be too high.`, "warning");
     }
   }
-
-  // The rest of your existing nextDay function code...
-  // [Retaining all existing code below this point]
-  
-  // Reduce quantity at old location (0-5 units per product)
-  if (buyLocations.includes(state.location)) {
-    products.forEach(p => {
-      marketStock[state.location][p] = Math.max(0, marketStock[state.location][p] - Math.floor(Math.random() * 6));
-    });
+  if (listingSales.length > 0) {
+    showNotification(`Online sales after fees: ${listingSales.join(", ")}`, "success");
   }
-  
-  // Refresh prices and quantities
-  buyLocations.concat(sellLocations).forEach(loc => {
-    products.forEach(p => {
-      let priceRange;
-      if (["The Base Set", "The Nostalgia Set"].includes(p)) {
-        priceRange = state.day <= 15 ? [400, 800] : [600, 1200];
-      } else if (["Dark Flames", "Masks of Dawn"].includes(p)) {
-        priceRange = state.day <= 15 ? [80, 250] : [150, 300];
-      } else {
-        priceRange = state.day <= 15 ? [120, 300] : [200, 500];
-      }
-      let basePrice = Math.floor(Math.random() * (priceRange[1] - priceRange[0] + 1)) + priceRange[0];
-      // Adjust price based on location behavior
-      if (loc === "Local Game Store") {
-        basePrice = Math.round(basePrice * ((Math.random() * 0.1) + 0.95)); // small fluctuation
-      } else if (loc === "Cost-Mart") {
-        basePrice = Math.round(basePrice * ((Math.random() * 0.15) + 0.85)); // lower, stable
-      } else if (loc === "eCommerce Store") {
-        basePrice = Math.round(basePrice * ((Math.random() * 0.5) + 0.75)); // volatile
-      }
-      marketPrices[loc][p] = Math.max(10, basePrice);
-      // Adjust stock based on location
-      if (loc === "Local Game Store") {
-        marketStock[loc][p] = Math.floor(Math.random() * 6) + 10; // more consistent
-      } else if (loc === "Cost-Mart") {
-        marketStock[loc][p] = Math.floor(Math.random() * 4) + 1;  // low stock
-      } else if (loc === "eCommerce Store") {
-        marketStock[loc][p] = Math.floor(Math.random() * 15);     // volatile
-      }
-      if (buyLocations.includes(loc)) {
-        state.priceHistory[p].push(marketPrices[loc][p]);
-        if (state.priceHistory[p].length > 90) {
-          state.priceHistory[p].shift();
-        }
-      }
-    });
-  });
-  
-  // Enforce $1 gap between buy/sell
-  products.forEach(p => {
-    const minSell = Math.min(...sellLocations.map(loc => marketPrices[loc][p]));
-    buyLocations.forEach(loc => {
-      if (marketPrices[loc][p] >= minSell) {
-        marketPrices[loc][p] = Math.max(10, minSell - 1);
-      }
-    });
-  });
-  
-  // Generate rumor and apply effects
-  generateRumor();
-  applyRumorEffectsToMarket();
+
+  // Today's news: rumors (some fake), confirmations and follow-ups
+  const news = market.headlines();
+  state.rumor = news.length ? news.join("\n") : "No news today...";
   
   // === Buy location stock notification with prices ===
   showModalNotification(generateStockUpdateMessage(), "Stock and Pricing info");
@@ -1019,7 +794,7 @@ function nextDay() {
   
   // Update rumor display and re-render
   document.getElementById("rumor").textContent = state.rumor;
-  showNotification(`Day ${state.day}: ${state.rumor}`, "info");
+  if (news.length) showNotification(`Day ${state.day}: ${news.join("<br>")}`, "info");
   render();
   renderOnlineListings();
   
@@ -1171,9 +946,6 @@ function initializeGame() {
   state.onlineListings = [];
   state.priceHistory = {};
   state.soldOutProducts = [];
-  state.rumorsLowStock = null;
-  state.rumorsNoReprint = null;
-  state.rumorsOverprint = null;
   state.notifications = [];
   
   products.forEach(p => {
@@ -1181,22 +953,12 @@ function initializeGame() {
     state.priceHistory[p] = [];
   });
   
-  // Initialize market prices and stock
-  buyLocations.concat(sellLocations).forEach(loc => {
-    marketPrices[loc] = {};
-    marketStock[loc] = {};
-    products.forEach(p => {
-      const price = generatePrice(p);
-      marketPrices[loc][p] = price;
-      marketStock[loc][p] = generateStock(loc);
-      if (buyLocations.includes(loc)) {
-        state.priceHistory[p].push(price);
-      }
-    });
-  });
-  
-  // Initialize the rumor system
-  initializeRumorSystem();
+  // Fresh market (same seed if one is in the URL)
+  market = TCGMarket.create(seedFromUrl());
+  state.seed = market.seed;
+  syncMarket();
+  const news = market.headlines();
+  state.rumor = news.length ? news.join("\n") : "No news yet...";
   
   render();
   

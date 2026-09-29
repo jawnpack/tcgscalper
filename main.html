@@ -31,8 +31,8 @@
       <ul id="inventory-list"></ul>
     </div>
     <div>
-      <h3>Rumors from your favorite content creator:</h3>
-      <p id="rumor">None yet...</p>
+      <h3>The Feed:</h3>
+      <p id="rumor" style="white-space: pre-line;">None yet...</p>
     </div>
   </div>
   
@@ -40,13 +40,13 @@
     <h3>Buy Locations</h3>
     <button onclick="travel('Local Game Store')">Local Game Store</button>
     <button onclick="travel('Cost-Mart')">Cost-Mart</button>
-    <button onclick="travel('eCommerce Store')">eCommerce Store</button>
+    <button onclick="travel('eCommerce Store')">eCommerce Store (ships 3 days)</button>
   </div>
   
   <div class="locations">
     <h3>Sell Locations</h3>
     <button onclick="travel('The Marketplace')">The Marketplace</button>
-    <button onclick="travel('TCG Convention')">TCG Convention</button>
+    <button onclick="travel('TCG Convention')">TCG Convention (Sat–Sun)</button>
   </div>
   
   <div class="market-locations">
@@ -135,6 +135,7 @@
     </div>
   </div>
 
+  <script src="js/market.js"></script>
   <script src="js/intro.js"></script>
   <script src="js/game.js"></script>
 </body>
