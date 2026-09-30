@@ -299,4 +299,4 @@ const venueOut = {};
   });
 }
 
-if (OUT) require("fs").writeFileSync(OUT, JSON.stringify({ summary, runs: RUNS, predict, quiet: { avg: mean(ret.quiet), sd: sd(ret.quiet) }, venueOut }, null, 1));
+if (OUT) require("fs").writeFileSync(OUT, JSON.stringify({ summary, runs: RUNS, perRun: Object.fromEntries(names.map(n => [n, res[n].map(r => [Math.round(r.net), r.shopDay || null])])), predict, quiet: { avg: mean(ret.quiet), sd: sd(ret.quiet) }, venueOut }, null, 1));
