@@ -247,6 +247,7 @@ function nextDay() {
     showNotification(`${placeOf(state.location).short} is closed today.`, "error");
   }
   render();
+  Saves.save();
 }
 
 // ---------------------------------------------------------------------------
@@ -288,14 +289,15 @@ function renderPlaces() {
     const extra = locked ? "Locked" : closed ? "Closed today" : p.kind === "online" && state.onlineListings.length ? `${state.onlineListings.length} listed`
       : p.kind === "shop" && state.shopShelf.length ? `${state.shopShelf.reduce((a, l) => a + l.quantity, 0)} on shelves`
       : market.mysteryBox && p.kind === "buy" && market.mysteryBox(p.id) ? "📦 Mystery box" : "";
-    return `<button type="button" class="place${p.id === state.location ? " here" : ""}${locked ? " locked" : ""}" data-place="${p.slug}" onclick="travel(${jsArg(p.id)})">${esc(p.short)}${extra ? `<small>${extra}</small>` : ""}</button>`;
+    const label = p.kind === "shop" && state.shopName ? state.shopName : p.short;
+    return `<button type="button" class="place${p.id === state.location ? " here" : ""}${locked ? " locked" : ""}" data-place="${p.slug}" onclick="travel(${jsArg(p.id)})">${esc(label)}${extra ? `<small>${extra}</small>` : ""}</button>`;
   }).join("")}</div>`;
   $("places").innerHTML = group("BUY", ["buy"]) + group("SELL", ["sell", "online", "shop"]);
 }
 
 function renderCounter() {
   const pl = placeOf(state.location);
-  $("here").textContent = pl.id.toUpperCase();
+  $("here").textContent = (pl.kind === "shop" && state.shopName ? state.shopName : pl.id).toUpperCase();
   let note = pl.note;
   if (pl.kind === "sell" && !market.isOpen(pl.id)) note = "CLOSED TODAY. Open Sat & Sun.";
   $("here-note").textContent = note;
@@ -352,12 +354,18 @@ function renderCounter() {
 // ---------------------------------------------------------------------------
 // Sheets (overlays)
 // ---------------------------------------------------------------------------
-function openSheet(title, html) {
+let sheetOnClose = null;
+function openSheet(title, html, onClose) {
   $("sheet-title").textContent = title;
   $("sheet-body").innerHTML = html;
   $("sheet").hidden = false;
+  sheetOnClose = onClose || null;
 }
-function closeSheet() { const s = $("sheet"); if (s) s.hidden = true; }
+function closeSheet() {
+  const s = $("sheet"); if (s) s.hidden = true;
+  const cb = sheetOnClose; sheetOnClose = null;
+  if (cb) cb();
+}
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
 document.addEventListener("click", e => { if (e.target && e.target.id === "sheet") closeSheet(); });
 
@@ -498,6 +506,7 @@ function initializeGame() {
   });
   state.seed = market.seed;
   state.runLabel = run.label;
+  state.board = Saves.boardFor(market.seed);
   const news = market.headlines();
   state.rumor = news.length ? news.join("\n") : "No news yet...";
   render();
@@ -505,13 +514,41 @@ function initializeGame() {
     `<p><strong>${run.label}</strong></p>
      <p>${money(TCGRules.RULES.startCash)}. ${TCGRules.RULES.mainDays} days. Raise ${money(TCGRules.RULES.lease)} and open your own card shop.</p>
      <p>Rent is due every 7 days. Watch the Feed.</p>`, "TCG SCALPER");
+  Saves.save();
+}
+
+// Offer to pick up the newest unfinished run (this device or the player's account).
+function askResume(found) {
+  const s = found.snap.state;
+  const resume = () => {
+    Saves.restore(found.snap);
+    if (state.pendingSubmit && window.Cloud && Cloud.user) Menu.submit("resume");
+    showNotification(`Welcome back. Day ${s.day}${found.fromCloud ? ", loaded from your account" : ""}.`);
+  };
+  openSheet("WELCOME BACK", `
+    <div class="sheet-section">
+      <p><strong>${esc(found.snap.runLabel || "Your run")}</strong>${s.shopName ? ` · ${esc(s.shopName)}` : ""}</p>
+      <div class="kv"><span>Day</span><span>${s.day}</span></div>
+      <div class="kv"><span>Cash</span><span>${money(s.money)}</span></div>
+      ${found.fromCloud ? `<p class="hint">Saved to your account from another device.</p>` : ""}
+      <button type="button" class="btn primary wide" id="resume-go">CONTINUE</button>
+      <button type="button" class="btn wide" id="resume-new">NEW GAME</button>
+    </div>`, resume);
+  $("resume-go").onclick = () => closeSheet();
+  $("resume-new").onclick = () => { sheetOnClose = null; closeSheet(); Saves.clear(); initializeGame(); };
 }
 
 window.onload = async () => {
   resetProgress(); // so the board the tutorial points at shows real numbers
   render();
+  const cloudReady = window.Cloud ? Cloud.init() : Promise.resolve();
+  Menu.applyLook();
   if (window.Intro && Intro.shouldPlay()) {
     try { await Intro.run(render); } catch (e) { console.error("Intro failed, starting game anyway:", e); }
   }
-  initializeGame();
+  await Promise.race([cloudReady, new Promise(r => setTimeout(r, 4000))]);
+  Menu.applyLook();
+  const found = await Saves.newest();
+  if (found) askResume(found); else initializeGame();
+  if (window.Cloud && Cloud.ready) Menu.handlePurchaseReturn();
 };

@@ -1,0 +1,19 @@
+# Supabase CLI config for the game's standalone project.
+# Webhooks are called by Stripe/RevenueCat, not by signed-in players,
+# so they skip Supabase's JWT check and verify their own signatures.
+project_id = "tcg-game"
+
+[functions.stripe-checkout]
+verify_jwt = true
+
+[functions.submit-run]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false

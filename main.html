@@ -28,6 +28,7 @@
     <div class="tb-row">
       <span id="tb-day">DAY 1 · MON</span>
       <span id="tb-cash">$1,500</span>
+      <button type="button" id="tb-menu" onclick="openMenu()" aria-label="Menu: account, leaderboard, store, look">MENU</button>
     </div>
     <button type="button" id="tb-more" onclick="openStuffSheet()">
       <span id="tb-summary">0 BOXES · RENT $450 D7 · GOAL $12K</span>
@@ -51,6 +52,8 @@
     <h3>THE FEED</h3>
     <div id="rumor">No news yet...</div>
   </section>
+
+  <div id="ad-slot" hidden aria-label="Advertisement"></div>
 
   <footer id="actionbar">
     <button type="button" id="next-day" onclick="nextDay()">NEXT DAY ▶</button>
@@ -92,8 +95,13 @@
 
   <script src="js/market.js"></script>
   <script src="js/rules.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/themes.js"></script>
   <script src="js/intro.js"></script>
   <script src="js/game.js"></script>
   <script src="js/progress.js"></script>
+  <script src="js/cloud.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/menu.js"></script>
 </body>
 </html>

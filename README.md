@@ -13,5 +13,8 @@ A text-based, Drug Wars-style trading card reseller game. $1,500, 30 days: read 
 - `js/progress.js` – shop goal, ripping, mystery boxes, Grail post-game, share cards
 - `js/intro.js` – intro script and tutorial
 - `js/game.js` – UI (status bar, places, counter, sheets) and the day loop
+- `js/config.js` – backend keys (blank = offline mode). See **SETUP.md**
+- `js/cloud.js`, `js/save.js`, `js/menu.js`, `js/themes.js` – accounts, cloud saves + autosave, leaderboard, store, night mode / colors / theme packs
+- `supabase/` – database schema with row-level security, Edge Functions (Stripe checkout + webhook, RevenueCat webhook, leaderboard submit, account deletion)
 - `css/gamestyle.css` – black & white theme; per-location palettes ready (add `class="color"` to `<body>`)
-- `tools/simulate.js`, `tools/grail-odds.js` – balance simulators (`node tools/simulate.js`)
+- `tools/skill-study.js` – 7 player types x N seeded markets (`node tools/skill-study.js 1000`); `tools/grail-odds.js`

@@ -178,6 +178,8 @@
     };
     return {
       next,
+      getState: () => a,
+      setState: v => { a = v | 0; },
       range: (lo, hi) => lo + next() * (hi - lo),
       int: (lo, hi) => lo + Math.floor(next() * (hi - lo + 1)),
       pick: arr => arr[Math.floor(next() * arr.length)],
@@ -398,6 +400,19 @@
       },
 
       headlines() { return headlinesFor(day, plan); },
+
+      // Save/restore everything a player's actions changed, so a reloaded
+      // save can't restock shelves or re-roll online sales.
+      snapshot() {
+        return { day, bought, sold, cleared, mysteryTaken: { ...mysteryTaken }, listingRng: listingRng.getState() };
+      },
+      restore(snap) {
+        if (!snap) return;
+        while (day < snap.day && day < HORIZON) { day++; }
+        bought = snap.bought || {}; sold = snap.sold || {}; cleared = snap.cleared || {};
+        Object.assign(mysteryTaken, snap.mysteryTaken || {});
+        if (snap.listingRng != null) listingRng.setState(snap.listingRng);
+      },
 
       // Mystery box at this store today? Returns price or null. One per store per day.
       mysteryBox(loc) {

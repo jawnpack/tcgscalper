@@ -39,7 +39,9 @@ function resetProgress() {
     costBasis: {},          // product -> { qty, total }
     bestFlip: null,         // { product, profit }
     evicted: false, runOver: false,
-    shopMomentShown: false
+    shopMomentShown: false,
+    shopName: null,         // the sign over the door, set when you make lease
+    pendingSubmit: false    // leaderboard post waiting for sign-in
   });
 }
 
@@ -141,7 +143,12 @@ function openShop() {
   state.shopDay = state.day;
   state.location = "Your Shop";
   render();
-  showMoment("shop");
+  Menu.askShopName(() => {
+    render();
+    showMoment("shop");
+    Menu.submit("shop");
+    Saves.save();
+  });
 }
 
 function ripBox(product) {
@@ -194,6 +201,8 @@ function foundGrail(from, product) {
   state.grailFrom = from === "mystery" ? "a mystery box" : product;
   render();
   showMoment("grail");
+  Menu.submit("grail");
+  Saves.save();
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +229,7 @@ function shareText(kind) {
   if (kind === "shop") {
     const lines = [
       head,
-      `🏪 Opened my card shop on DAY ${state.shopDay}`,
+      `🏪 Opened ${state.shopName ? `"${state.shopName}"` : "my card shop"} on DAY ${state.shopDay}`,
       `💵 ${usd(RULES.startCash)} → ${usd(RULES.lease)} lease in ${state.shopDay} days`,
       trendStrip(state.shopDay)
     ];
@@ -242,7 +251,7 @@ function shareText(kind) {
   // end of run
   const rank = TCGRules.rankFor({ evicted: state.evicted, shopDay: state.shopDay, grailBox: state.grailBox, netWorth: netWorth() });
   const lines = [head, `Rank: ${rank}`];
-  if (state.shopDay) lines.push(`🏪 Shop opened Day ${state.shopDay}`);
+  if (state.shopDay) lines.push(`🏪 ${state.shopName ? `"${state.shopName}"` : "Shop"} opened Day ${state.shopDay}`);
   else lines.push(`🏪 Never opened the shop`);
   if (state.grailBox) lines.push(`🏆 ${RULES.grailName} on box #${state.grailBox} (Day ${state.grailDay})`);
   lines.push(`💵 Net worth: ${usd(netWorth())}`);
@@ -266,7 +275,8 @@ async function shareRun(kind) {
 
 function momentHtml(kind) {
   const title = kind === "shop"
-    ? `<p style="font-size:1.2em">🏪 You opened your own card shop on <strong>DAY ${state.shopDay}</strong>.</p>
+    ? `<p style="font-size:1.2em">🏪 <strong>${escapeHtml(state.shopName || "Your shop")}</strong> opened its doors on <strong>DAY ${state.shopDay}</strong>.</p>
+       ${window.Cloud && Cloud.ready && !Cloud.user ? `<p><strong>Sign in from the MENU</strong> to put your shop on today's leaderboard.</p>` : ""}
        <p>Rent is over. Walk-ins buy every day, and you can stock your own shelves at your own prices.</p>
        <p><strong>POST-GAME:</strong> hunt for <strong>${RULES.grailName}</strong>. RIP boxes (tap MORE up top), open mystery boxes, and pray for a god pack. Keep flipping to fund it. The hunt ends when you pull it or go broke.</p>`
     : `<p style="font-size:1.2em">🏆 You pulled <strong>${RULES.grailName}</strong> on box <strong>#${state.grailBox}</strong>!</p>
@@ -312,4 +322,6 @@ function endRun(reason) {
   document.getElementById("final-sold").textContent = gameStats.totalSold;
   document.getElementById("final-share").textContent = shareText("end");
   document.getElementById("leaderboard-modal").style.display = "flex";
+  if (state.shopName) Menu.submit("end");
+  Saves.clear();
 }
