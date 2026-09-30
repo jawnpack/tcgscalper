@@ -292,7 +292,7 @@
     { target: "#counter",
       t: "The counter shows where you're standing. BUY one or MAX. At sell spots it's SELL or ALL. Mystery boxes show up here too." },
     { target: () => document.querySelectorAll(".places-group")[1],
-      t: "SELL spots. Marketplace pays every day. Convention pays best, Sat & Sun only. Online lets you set your own price. Your Shop unlocks when you open it." },
+      t: "SELL spots. Marketplace pays every day. The Convention (Sat & Sun) swings the hardest: the crowd goes wild on out-of-print and reprint news, even rumors. Online lets you set your own price. Your Shop unlocks when you open it." },
     { target: "#feed",
       t: "The Feed. Rumors hit a day or three before the market moves. LEAKERS are usually right. CREATORS... are creators. Some rumors are pure cap." },
     { target: "#tb-more",

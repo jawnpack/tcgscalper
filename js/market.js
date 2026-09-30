@@ -16,6 +16,10 @@
 //            then recovers. Sell the peak; don't be holding on day 4.
 //   OOP      out of print: roughly doubles over 3 days and STAYS up forever.
 //   REPRINT  dips ~35%, shelves flood, recovers only part of the way.
+//
+// The TCG Convention is the swingiest venue: widest daily noise, it overreacts to
+// events, and its crowd moves on rumors (even fake ones) before anything is confirmed.
+//
 //   CRUNCH   short supply crunch: shelves go thin, price +35-45% for a few days.
 
 (function (root) {
@@ -59,7 +63,17 @@
     // Sell spots pay by tier: lower-end boxes flip for a small profit over
     // retail; vintage only pays when the market moves your way.
     "The Marketplace":  { side: "sell", markup: { vintage: 0.93, mid: 1.04, modern: 1.04 }, noise: 0.04, depth: 0.004 },
-    "TCG Convention":   { side: "sell", markup: { vintage: 1.02, mid: 1.10, modern: 1.10 }, noise: 0.05, depth: 0.012, openDays: weekends }
+    "TCG Convention":   { side: "sell", markup: { vintage: 0.97, mid: 1.00, modern: 1.00 }, noise: 0.10, depth: 0.02, openDays: weekends, crowd: true }
+  };
+
+  // The Convention crowd trades on news: it overreacts to confirmed events
+  // (eventAmp stretches each event's curve) and moves on RUMORS before anything
+  // is confirmed (rumorReact, from the rumor day until the event starts or the
+  // rumor is debunked) — fake ones included. Leakers move the crowd more than creators.
+  const CROWD = {
+    eventAmp:   { oop: 1.9, reprint: 1.9, crunch: 1.4, hype: 1.2 },
+    rumorReact: { oop: 0.32, reprint: -0.3, crunch: 0.15, hype: 0.1 },
+    sourceWeight: { leaker: 1, creator: 0.7 }
   };
 
   // Online listings: chance EACH listed box sells per day, based on how far
@@ -247,17 +261,25 @@
       for (let d = 1; d <= HORIZON; d++) {
         base.push(base[d - 1] * (1 + t.drift + volOn(t, d) * rng.gauss()));
       }
-      const value = [], supply = [];
+      const value = [], supply = [], crowd = [];
+      const mine = plan.events.filter(e => e.product === p.name);
+      const rumors = plan.events.concat(plan.fakes).filter(e => e.product === p.name);
       for (let d = 0; d <= HORIZON; d++) {
-        let pm = 1, sm = 1;
-        plan.events.filter(e => e.product === p.name).forEach(e => {
+        let pm = 1, sm = 1, cm = 1;
+        mine.forEach(e => {
           pm *= curveAt(EVENTS[e.type].price, d - e.start, e.mag);
           sm *= curveAt(EVENTS[e.type].supply, d - e.start, 1);
+          cm *= curveAt(EVENTS[e.type].price, d - e.start, e.mag * CROWD.eventAmp[e.type]);
+        });
+        rumors.forEach(e => {
+          const until = e.fake ? e.rumorDay + 3 : e.start;
+          if (d >= e.rumorDay && d < until) cm *= 1 + CROWD.rumorReact[e.type] * CROWD.sourceWeight[e.source];
         });
         value.push(base[d] * pm);
         supply.push(sm);
+        crowd.push(pm > 0 ? cm / pm : 1); // Convention price relative to true value
       }
-      series[p.name] = { base, value, supply };
+      series[p.name] = { base, value, supply, crowd };
     });
 
     const quotes = {}; // quotes[day][loc][product] = { price, stock }
@@ -269,7 +291,7 @@
       Object.entries(LOCATIONS).forEach(([loc, L]) => {
         quotes[d][loc] = {};
         PRODUCTS.forEach(p => {
-          const v = series[p.name].value[d];
+          const v = series[p.name].value[d] * (L.crowd ? series[p.name].crowd[d] : 1);
           const mk = typeof L.markup === "number" ? L.markup : L.markup[p.tier];
           const price = Math.max(5, Math.round(v * mk * (1 + L.noise * (rng.next() * 2 - 1))));
           let stock = null;
