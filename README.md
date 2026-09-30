@@ -1,6 +1,6 @@
 # TCG Scalper
 
-A text-based, Drug Wars-style trading card reseller game. $1,000, 30 days: read the rumors, flip the hype, and open your own card shop. Then hunt for THE GRAIL.
+A text-based, Drug Wars-style trading card reseller game. $1,500, 30 days: read the rumors, flip the hype, and open your own card shop. Then hunt for THE GRAIL.
 
 **Play:** https://jawnpack.github.io/tcgscalper/
 

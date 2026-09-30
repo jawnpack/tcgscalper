@@ -28,7 +28,7 @@ const placeOf = id => PLACES.find(p => p.id === id);
 
 let state = {
   day: 1,
-  money: 1000,
+  money: TCGRules.RULES.startCash,
   location: "Local Game Store",
   inventory: {},
   rumor: "No news yet...",
@@ -464,7 +464,7 @@ function openOddsSheet() {
     <div class="sheet-section"><h3>MYSTERY BOX</h3>
       ${R.mystery.map(([c, name]) => `<div class="kv"><span>${{ junk: "Junk", decent: "Decent", big: "Jackpot", god: "God pack", grail: R.grailName }[name]}</span><span>${pct(c)}</span></div>`).join("")}</div>
     <div class="sheet-section"><h3>MONEY</h3>
-      <p>Rent every ${R.rentEvery} days: ${R.rent.map(money).join(", ")}, then +${money(R.rentStepAfter)}/week.</p>
+      <p>Rent every ${R.rentEvery} days: ${R.rentStepAfter ? `${R.rent.map(money).join(", ")}, then +${money(R.rentStepAfter)}/week` : `${money(R.rent[0])}, every week`}.</p>
       <p>Debt grows ${R.debtRate * 100}% a day. Evicted at ${money(R.evictAt)}.</p>
       <p>Shop lease: ${money(R.lease)} by Day ${R.mainDays}.</p></div>`);
 }
@@ -503,7 +503,7 @@ function initializeGame() {
   render();
   showModalNotification(
     `<p><strong>${run.label}</strong></p>
-     <p>$1,000. ${TCGRules.RULES.mainDays} days. Raise ${money(TCGRules.RULES.lease)} and open your own card shop.</p>
+     <p>${money(TCGRules.RULES.startCash)}. ${TCGRules.RULES.mainDays} days. Raise ${money(TCGRules.RULES.lease)} and open your own card shop.</p>
      <p>Rent is due every 7 days. Watch the Feed.</p>`, "TCG SCALPER");
 }
 

@@ -6,14 +6,14 @@
   "use strict";
 
   const RULES = {
-    startCash: 1000,
+    startCash: 1500,
     mainDays: 30,          // the main game: open your shop before this ends
     maxDays: 120,          // hard stop for the post-game Grail hunt
 
     // Rent is due every 7 days. Can't cover it? The shortfall becomes debt.
     rentEvery: 7,
-    rent: [250, 450, 700, 1000],   // weeks 1-4; after that +300/week
-    rentStepAfter: 300,
+    rent: [450],           // flat $450 every 7 days (sim: casual players break even, skilled shop day unchanged)
+    rentStepAfter: 0,
 
     // Debt / loan shark
     debtRate: 0.05,        // 5% per day, compounding

@@ -213,7 +213,7 @@
           skip.style.display = "none";
           const s = showScreen(`
             <div class="intro-title">TCG SCALPER</div>
-            <div class="intro-sub">$1,000. 30 DAYS. OPEN YOUR SHOP.</div>
+            <div class="intro-sub">$1,500. 30 DAYS. OPEN YOUR SHOP.</div>
             <div class="intro-menu">
               <button type="button" data-choice="tutorial">HOW TO PLAY</button>
               <button type="button" data-choice="play">JUMP RIGHT IN</button>
@@ -282,7 +282,7 @@
   // ---------------------------------------------------------------------------
   const TUTORIAL = [
     { target: null,
-      t: "Listen up, rookie. You've got $1,000 and 30 days to raise $12,000 and open your OWN card shop. Do it fast. The day you open is your score." },
+      t: "Listen up, rookie. You've got $1,500 and 30 days to raise $12,000 and open your OWN card shop. Do it fast. The day you open is your score." },
     { target: "#topbar",
       t: "The day and your cash. Every day you can visit as many places as you like. Nothing moves until you hit NEXT DAY." },
     { target: "#tb-more",
@@ -296,7 +296,7 @@
     { target: "#feed",
       t: "The Feed. Rumors hit a day or three before the market moves. LEAKERS are usually right. CREATORS... are creators. Some rumors are pure cap." },
     { target: "#tb-more",
-      t: "Rent's due every 7 days. Come up short and the loan shark covers it at 5% a DAY. You can borrow on purpose to go big on a hot tip. Owe $10K and you're evicted." },
+      t: "Rent is $450, due every 7 days. Come up short and the loan shark covers it at 5% a DAY. You can borrow on purpose to go big on a hot tip. Owe $10K and you're evicted." },
     { target: "#next-day",
       t: "Done for the day? Hit NEXT DAY." },
     { target: null,
