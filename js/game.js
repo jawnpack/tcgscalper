@@ -408,6 +408,7 @@ function openStuffSheet() {
         <button type="button" class="btn" onclick="openOddsSheet()">ODDS & RULES</button>
         <button type="button" class="btn" onclick="replayIntro()">REPLAY INTRO</button>
       </div>
+      ${window.GAME_HOME ? `<p class="hint"><a href="${esc(window.GAME_HOME.url)}" style="color:inherit">${esc(window.GAME_HOME.label)} ↗</a></p>` : ""}
     </div>`);
 }
 
@@ -504,7 +505,7 @@ function initializeGame() {
   showModalNotification(
     `<p><strong>${run.label}</strong></p>
      <p>${money(TCGRules.RULES.startCash)}. ${TCGRules.RULES.mainDays} days. Raise ${money(TCGRules.RULES.lease)} and open your own card shop.</p>
-     <p>Rent is due every 7 days. Watch the Feed.</p>`, "TCG SCALPER");
+     <p>Rent is due every 7 days. Watch the Feed.</p>`, "THE CARDBOARD FLIP");
 }
 
 window.onload = async () => {

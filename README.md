@@ -1,4 +1,6 @@
-# TCG Scalper
+# The Cardboard Flip
+
+(Repo name `tcgscalper` is the old working title.)
 
 A text-based, Drug Wars-style trading card reseller game. $1,500, 30 days: read the rumors, flip the hype, and open your own card shop. Then hunt for THE GRAIL.
 

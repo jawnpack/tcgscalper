@@ -216,7 +216,7 @@ function challengeLink() {
 }
 
 function shareText(kind) {
-  const head = `TCG SCALPER · ${state.runLabel}`;
+  const head = `THE CARDBOARD FLIP · ${state.runLabel}`;
   if (kind === "shop") {
     const lines = [
       head,

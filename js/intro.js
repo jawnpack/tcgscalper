@@ -212,7 +212,7 @@
           place.textContent = "";
           skip.style.display = "none";
           const s = showScreen(`
-            <div class="intro-title">TCG SCALPER</div>
+            <div class="intro-title">THE CARDBOARD<br>FLIP</div>
             <div class="intro-sub">$1,500. 30 DAYS. OPEN YOUR SHOP.</div>
             <div class="intro-menu">
               <button type="button" data-choice="tutorial">HOW TO PLAY</button>
